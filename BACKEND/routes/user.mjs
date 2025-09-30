@@ -10,18 +10,25 @@ const router = express.Router();
 
 var store = new ExpressBrute.MemoryStore();
 var bruteforce = new ExpressBrute(store);
-
-router.post("/signup", async (req, res)=> {
-    const password = bcrypt.hash(req.body.password,10)
-    let newDocument ={
-        name: req.body.name,
-        password: (await password).toString()
-    };
-    let collection = await db.collection("users")
-    let result = await collection.insertOne(newDocument)
-    console.log(password);
-    res.send(result).status(204)
-})
+router.post("/signup", async (req, res) => {
+    const { name, password } = req.body;
+    if (!name || !password) {
+        return res.status(400).json({ message: "Name and password are required." });
+    }
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        let newDocument = {
+            name: name,
+            password: hashedPassword
+        };
+        let collection = await db.collection("users");
+        let result = await collection.insertOne(newDocument);
+        res.status(201).json(result);
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ message: "Signup failed." });
+    }
+});
 
 router.post("/login", bruteforce.prevent, async (req, res)=>{
     const {name, password} = req.body;

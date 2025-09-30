@@ -10,8 +10,8 @@ router.get("/", async (req, res) => {
     res.send(results).status(200);
 });
 
-// create a new fruit reecord
-router.post("/fruit", async (req, res)=>{
+// create a new fruit record
+router.post("/", async (req, res)=>{
     let newDocument ={
         name: req.body.name,
         comment: req.body.comment
