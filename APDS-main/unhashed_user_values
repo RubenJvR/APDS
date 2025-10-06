@@ -1,0 +1,21 @@
+// this class exists soley to store unhashed user values for testing purposes
+// DO NOT include in the final version...unless sir would like i guess idk
+
+
+/*alice {
+  "fullName": "Alice Wonder",
+  "idNumber": "123456789",
+  "accountNumber": "1111",
+  "name": "alice",
+  "password": "pass"
+}
+*/
+
+/*bob {
+  "fullName": "Bobby Janes",
+  "idNumber": "222222222",
+  "accountNumber": "1002",
+  "name": "bob",
+  "password": "bobpass"
+}
+*/
