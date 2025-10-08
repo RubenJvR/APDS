@@ -7,15 +7,24 @@ import posts from "./routes/post.mjs"
 import express from "express"
 import cors from "cors"
 import db from "./db/conn.mjs";
+import rateLimit from "express-rate-limit";
 
 const PORT = 3000;
 const app = express();
+
 
 const options = {
     key: fs.readFileSync('keys/mongodb-key.pem'),
     cert: fs.readFileSync('keys/mongodb-cert.pem')
 }
 
+const limiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 10,
+    message: 'Too many requests from this IP, try again later'
+})
+
+app.use(limiter);
 app.use(cors());
 app.use(express.json());
 
