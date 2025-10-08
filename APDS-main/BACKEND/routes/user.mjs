@@ -5,13 +5,19 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import ExpressBrute from "express-brute";
 import checkauth from "../check-auth.mjs";
-
+import rateLimit from "express-rate-limit";
 
 const router = express.Router();
 
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 5,
+    message: 'Too many login attempts, please try again later'
+});
+
 var store = new ExpressBrute.MemoryStore();
 var bruteforce = new ExpressBrute(store);
-router.post("/signup", async (req, res) => {
+router.post("/signup",limiter, async (req, res) => {
     const { fullName, idNumber, accountNumber, name, password } = req.body;
     if (!fullName || !idNumber || !accountNumber || !name || !password) {
         return res.status(400).json({ message: "All fields are required." });// tiny bit of validation thall need expanding on 
@@ -35,7 +41,9 @@ router.post("/signup", async (req, res) => {
     }
 });
 
-router.post("/login", bruteforce.prevent, async (req, res) => {
+
+
+router.post("/login",limiter , bruteforce.prevent, async (req, res) => {
     const { name, accountNumber, password } = req.body;
     if (!name || !accountNumber || !password) {
         return res.status(400).json({ message: "All fields are required." });
