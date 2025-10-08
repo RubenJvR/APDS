@@ -1,22 +1,32 @@
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
+
 dotenv.config();
 
-const connectionString = process.env.ATLAS_URI || "";
 
-console.log(connectionString);
+const connectionString =
+  process.env.ATLAS_URI ||
+  "mongodb+srv://d3mwize_db_user:XsfwfRh29R8rqubi@adps-cluster.vbz68yu.mongodb.net/users?retryWrites=true&w=majority&tls=true";
 
-const client = new MongoClient(connectionString);
+console.log("Connecting to MongoDB...");
 
-let conn;
+const client = new MongoClient(connectionString, {
 
-try{
-    conn = await client.connect();
-    console.log('mongoDB is CONNECTED!!! :)');
-}catch(e){
-    console.error(e);
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  tls: true,
+  tlsAllowInvalidCertificates: false, 
+  serverSelectionTimeoutMS: 10000, 
+});
+
+let db;
+
+try {
+  await client.connect();
+  console.log(" MongoDB is CONNECTED!!! :)");
+  db = client.db("users");
+} catch (err) {
+  console.error(" MongoDB connection error:", err.message);
 }
 
-let db = client.db("users");
-
-export default db; 
+export default db;
