@@ -12,7 +12,7 @@ const router = express.Router();
 // limits rates for requests
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, 
-    max: 5,
+    max: 10,
     message: 'Too many login attempts, please try again later'
 });
 
@@ -103,9 +103,20 @@ router.post("/login",limiter , bruteforce.prevent, async (req, res) => {
     }
 })
 
-router.post("/transfer", checkauth, async (req, res) => {
+router.post("/transfer",limiter, checkauth, async (req, res) => {
     const { toAccountNumber, amount } = req.body;
     const fromAccountNumber = req.user.accountNumber;
+
+    const amountRegex = /^\d+$/;
+    const toAccountNumberRegex = /^\d{8,12}$/;
+
+    if (!amountRegex.test(amount)) {
+        return res.status(400).json({ message: "Amount must be a number" });
+    }
+
+    if (!toAccountNumberRegex.test(toAccountNumber)) {
+        return res.status(400).json({ message: "Account number must be 8–12 digits." });
+    }
 
     if (!toAccountNumber || !amount || amount <= 0) {
         return res.status(400).json({ message: "Invalid transfer details" });
@@ -142,9 +153,20 @@ router.post("/transfer", checkauth, async (req, res) => {
 });
 
 // added this so a user would be able to add funds to their account without transferring it to themselves or something else dumb
-router.post("/add-funds", checkauth, async (req, res) => {
+router.post("/add-funds",limiter, checkauth, async (req, res) => {
     const { amount } = req.body;
     const accountNumber = req.user.accountNumber;
+
+    const amountRegex = /^\d+$/;
+    const toAccountNumberRegex = /^\d{8,12}$/;
+
+    if (!amountRegex.test(amount)) {
+        return res.status(400).json({ message: "Amount must be a number" });
+    }
+
+    if (!accountNumberRegex.test(accountNumber)) {
+        return res.status(400).json({ message: "Account number must be 8–12 digits." });
+    }
 
     if (!amount || amount <= 0) {
         return res.status(400).json({ message: "Invalid amount" });
