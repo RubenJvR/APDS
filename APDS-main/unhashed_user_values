@@ -1,0 +1,25 @@
+[
+ {
+  "fullName": "Alice Wonder",
+  "idNumber": "123456789",
+  "accountNumber": "1111",
+  "name": "alice",
+  "password": "pass"
+},
+
+{
+  "fullName": "Bobby Janes",
+  "idNumber": "222222222",
+  "accountNumber": "1002",
+  "name": "bob",
+  "password": "bobpass"
+},
+
+ {
+  "fullName": "Brad Buys",
+  "idNumber": "123456789",
+  "accountNumber": "12345678",
+  "name": "BradB",
+  "password": "BradPass1"
+}
+]
