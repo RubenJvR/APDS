@@ -5,16 +5,46 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import ExpressBrute from "express-brute";
 import checkauth from "../check-auth.mjs";
-
+import rateLimit from "express-rate-limit";
 
 const router = express.Router();
 
+// limits rates for requests
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 5,
+    message: 'Too many login attempts, please try again later'
+});
+
 var store = new ExpressBrute.MemoryStore();
 var bruteforce = new ExpressBrute(store);
-router.post("/signup", async (req, res) => {
+router.post("/signup",limiter, async (req, res) => {
     const { fullName, idNumber, accountNumber, name, password } = req.body;
     if (!fullName || !idNumber || !accountNumber || !name || !password) {
         return res.status(400).json({ message: "All fields are required." });// tiny bit of validation thall need expanding on 
+    }
+    //Regex can be changed for later
+    const fullNameRegex = /^[A-Za-z ]{2,}$/;
+    const idNumberRegex = /^\d{9}$/;
+    const accountNumberRegex = /^\d{8,12}$/;
+    const nameRegex = /^\w{3,15}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
+
+    //checks the regex against the user entered details
+    if (!fullNameRegex.test(fullName)) {
+        return res.status(400).json({ message: "Full name must only contain letters and spaces." });
+    }
+    if (!idNumberRegex.test(idNumber)) {
+        return res.status(400).json({ message: "ID number must be exactly 9 digits." });
+    }
+    if (!accountNumberRegex.test(accountNumber)) {
+        return res.status(400).json({ message: "Account number must be 8–12 digits." });
+    }
+    if (!nameRegex.test(name)) {
+        return res.status(400).json({ message: "Username must be 3–15 characters, letters/numbers/underscores only." });
+    }
+    if (!passwordRegex.test(password)) {
+        return res.status(400).json({ message: "Password must be at least 8 chars, with uppercase, lowercase, and number." });
     }
     try {
         const hashedPassword = await bcrypt.hash(password, 10); //account details adjusted to meet the poe stuffs
@@ -35,7 +65,9 @@ router.post("/signup", async (req, res) => {
     }
 });
 
-router.post("/login", bruteforce.prevent, async (req, res) => {
+
+
+router.post("/login",limiter , bruteforce.prevent, async (req, res) => {
     const { name, accountNumber, password } = req.body;
     if (!name || !accountNumber || !password) {
         return res.status(400).json({ message: "All fields are required." });
