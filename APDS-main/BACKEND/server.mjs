@@ -5,6 +5,7 @@ import fruits from "./routes/fruit.mjs"
 import users from "./routes/user.mjs"
 import posts from "./routes/post.mjs"
 import express from "express"
+import assert from "assert";
 import cors from "cors"
 import db from "./db/conn.mjs";
 import rateLimit from "express-rate-limit";
@@ -12,12 +13,14 @@ import rateLimit from "express-rate-limit";
 const PORT = 3000;
 const app = express();
 
+//cookie parser for reading cookies for session validation
+import cookieParser from "cookie-parser";
+
 
 const options = {
     key: fs.readFileSync('keys/mongodb-key.pem'),
     cert: fs.readFileSync('keys/mongodb-cert.pem')
 }
-
 
 
 const limiter = rateLimit({
@@ -27,8 +30,12 @@ const limiter = rateLimit({
 })
 
 app.use(limiter);
+
 app.use(cors());
 app.use(express.json());
+
+app.use(cookieParser()); // enables reading secure cookies for session validation
+
 
 app.use((req, res, next) => 
 {
@@ -46,7 +53,7 @@ app.route("/post", posts);
 app.use("/user", users);
 app.route("/user", users);
 
-// Root endpoint for quick server check
+// root endpoint for quick server check
 app.get("/", (req, res) => {
     res.send("Server is running. Use /test-db to test MongoDB connection.");
 });

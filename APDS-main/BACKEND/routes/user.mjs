@@ -1,4 +1,5 @@
 import express from "express";
+import assert from "assert";
 import db from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
 import bcrypt from "bcrypt";
@@ -6,6 +7,7 @@ import jwt from "jsonwebtoken";
 import ExpressBrute from "express-brute";
 import checkauth from "../check-auth.mjs";
 import rateLimit from "express-rate-limit";
+
 
 const router = express.Router();
 
@@ -85,14 +87,31 @@ router.post("/login",limiter , bruteforce.prevent, async (req, res) => {
         if (!passwordMatch) {
             return res.status(401).json({ message: "Authentication failed" });
         } else {
+            
+            // regenerate JWT with unique JWT ID for each login to prevent session fixation
+            // embed IP and user agent in JWT for anomaly detection
+            const jti = Math.random().toString(36).substring(2) + Date.now();
             const token = jwt.sign(
-                { name: user.name, accountNumber: user.accountNumber },
+                {
+                    name: user.name,
+                    accountNumber: user.accountNumber,
+                    jti, // unique session id
+                    ip: req.ip, // users IP address
+                    ua: req.headers["user-agent"] // users browser info
+                },
                 "this_secret_should_be_longer_than_it_is",
-                { expiresIn: "1h" }
+                { expiresIn: "30m" } // shorter expiry for security
             );
+            // send the token via an HTTP only secure cookie
+            res.cookie("session", token, {
+                httpOnly: true, 
+                secure: true, 
+                sameSite: "strict", 
+                maxAge: 30 * 60 * 1000 // 30 mins
+            });
+            
             res.status(200).json({
                 message: "Authentication successful",
-                token: token,
                 name: user.name,
                 accountNumber: user.accountNumber
             });
