@@ -11,14 +11,21 @@ const router = express.Router();
 
 // limits rates for requests
 const limiter = rateLimit({
+    windowMs: 5 * 60 * 1000, 
+    max: 100,
+    message: 'Too many attempts, please try again later'
+});
+
+const limiterSignup = rateLimit({
     windowMs: 15 * 60 * 1000, 
-    max: 5,
-    message: 'Too many login attempts, please try again later'
+    max: 10,
+    message: 'Too many sign up attempts, please try again later'
 });
 
 var store = new ExpressBrute.MemoryStore();
 var bruteforce = new ExpressBrute(store);
-router.post("/signup",limiter, async (req, res) => {
+
+router.post("/signup",limiterSignup, async (req, res) => {
     const { fullName, idNumber, accountNumber, name, password } = req.body;
     if (!fullName || !idNumber || !accountNumber || !name || !password) {
         return res.status(400).json({ message: "All fields are required." });// tiny bit of validation thall need expanding on 
@@ -47,18 +54,30 @@ router.post("/signup",limiter, async (req, res) => {
         return res.status(400).json({ message: "Password must be at least 8 chars, with uppercase, lowercase, and number." });
     }
     try {
-        const hashedPassword = await bcrypt.hash(password, 10); //account details adjusted to meet the poe stuffs
+
+        const collection = await db.collection("users");
+
+        const exists = await collection.findOne({
+            $or: [{name}, {accountNumber}]
+        });
+        if(exists){
+            return res.status(409).json({message: "Username already exists"})
+        }
+
+        const SALT_ROUNDS = 12;
+        const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+
         let newDocument = {
             fullName,
             idNumber,
             accountNumber,
             name,
-            password: hashedPassword,
+            password: hashed,
             balance: 0 
         };
-        let collection = await db.collection("users");
+        
         let result = await collection.insertOne(newDocument);
-        res.status(201).json(result);
+        res.status(201).json({message: "User created", id: result});
     } catch (e) {
         console.error(e);
         res.status(500).json({ message: "Signup failed." });
@@ -103,9 +122,20 @@ router.post("/login",limiter , bruteforce.prevent, async (req, res) => {
     }
 })
 
-router.post("/transfer", checkauth, async (req, res) => {
+router.post("/transfer",limiter, checkauth, async (req, res) => {
     const { toAccountNumber, amount } = req.body;
     const fromAccountNumber = req.user.accountNumber;
+
+    const amountRegex = /^\d+$/;
+    const toAccountNumberRegex = /^\d{8,12}$/;
+
+    if (!amountRegex.test(amount)) {
+        return res.status(400).json({ message: "Amount must be a number" });
+    }
+
+    if (!toAccountNumberRegex.test(toAccountNumber)) {
+        return res.status(400).json({ message: "Account number must be 8–12 digits." });
+    }
 
     if (!toAccountNumber || !amount || amount <= 0) {
         return res.status(400).json({ message: "Invalid transfer details" });
@@ -142,9 +172,20 @@ router.post("/transfer", checkauth, async (req, res) => {
 });
 
 // added this so a user would be able to add funds to their account without transferring it to themselves or something else dumb
-router.post("/add-funds", checkauth, async (req, res) => {
+router.post("/add-funds",limiter, checkauth, async (req, res) => {
     const { amount } = req.body;
     const accountNumber = req.user.accountNumber;
+
+    const amountRegex = /^\d+$/;
+    const accountNumberRegex = /^\d{8,12}$/;
+
+    if (!amountRegex.test(amount)) {
+        return res.status(400).json({ message: "Amount must be a number" });
+    }
+
+    if (!accountNumberRegex.test(accountNumber)) {
+        return res.status(400).json({ message: "Account number must be 8–12 digits." });
+    }
 
     if (!amount || amount <= 0) {
         return res.status(400).json({ message: "Invalid amount" });

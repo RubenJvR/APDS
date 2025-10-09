@@ -8,6 +8,7 @@ import express from "express"
 import cors from "cors"
 import db from "./db/conn.mjs";
 import rateLimit from "express-rate-limit";
+import helmet from "helmet";
 
 const PORT = 3000;
 const app = express();
@@ -29,6 +30,7 @@ const limiter = rateLimit({
 app.use(limiter);
 app.use(cors());
 app.use(express.json());
+app.use(helmet());
 
 app.use((req, res, next) => 
 {
