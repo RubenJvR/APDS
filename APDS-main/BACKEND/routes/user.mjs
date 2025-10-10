@@ -7,7 +7,13 @@ import jwt from "jsonwebtoken";
 import ExpressBrute from "express-brute";
 import checkauth from "../check-auth.mjs";
 import rateLimit from "express-rate-limit";
+import sanitizeHtml from "sanitize-html";
 
+
+function clean(value) {
+  if (typeof value !== "string") return value;
+  return sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} }).trim();
+}
 
 const router = express.Router();
 
@@ -27,11 +33,18 @@ const limiterSignup = rateLimit({
 var store = new ExpressBrute.MemoryStore();
 var bruteforce = new ExpressBrute(store);
 
-router.post("/signup",limiterSignup, async (req, res) => {
-    const { fullName, idNumber, accountNumber, name, password } = req.body;
-    if (!fullName || !idNumber || !accountNumber || !name || !password) {
-        return res.status(400).json({ message: "All fields are required." });// tiny bit of validation thall need expanding on 
-    }
+router.post("/signup", limiterSignup, async (req, res) => {
+  const { fullName: rawFullName, idNumber: rawIdNumber, accountNumber: rawAccountNumber, name: rawName, password } = req.body;
+  if (!rawFullName || !rawIdNumber || !rawAccountNumber || !rawName || !password) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+
+  // sanitize BEFORE validation
+  const fullName = clean(rawFullName);
+  const name = clean(rawName);
+  const idNumber = String(rawIdNumber).trim();
+  const accountNumber = String(rawAccountNumber).trim();
+  
     //Regex can be changed for later
     const fullNameRegex = /^[A-Za-z ]{2,}$/;
     const idNumberRegex = /^\d{9}$/;
