@@ -1,9 +1,7 @@
 import https from "https";
 import http from "http"
 import fs from "fs";
-import fruits from "./routes/fruit.mjs"
 import users from "./routes/user.mjs"
-import posts from "./routes/post.mjs"
 import express from "express"
 import assert from "assert";
 import cors from "cors"
@@ -58,10 +56,6 @@ app.use((req, res, next) =>
 }
 )
 
-app.use("/fruit", fruits);
-app.route("/fruit", fruits);
-app.use("/post", posts);
-app.route("/post", posts);
 app.use("/user", users);
 app.route("/user", users);
 

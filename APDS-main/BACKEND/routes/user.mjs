@@ -63,7 +63,7 @@ router.post("/signup",limiterSignup, async (req, res) => {
             $or: [{name}, {accountNumber}]
         });
         if(exists){
-            return res.status(409).json({message: "Username already exists"})
+            return res.status(409).json({message: "Username, or account number already in use"})
         }
 
         const SALT_ROUNDS = 12;
