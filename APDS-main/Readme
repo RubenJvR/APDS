@@ -2,6 +2,10 @@ This is our APDS7312 POE_2 backend
 
 https://github.com/RubenJvR/APDS
 
+
+demo video:
+https://youtu.be/YbP2otdQNSQ
+
 To run the system use : npm run dev
 
 Users can use pastman to test featuers
