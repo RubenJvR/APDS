@@ -7,6 +7,8 @@ import posts from "./routes/post.mjs"
 import express from "express"
 import cors from "cors"
 import db from "./db/conn.mjs";
+import helmet from "helmet";
+import mongoSanitize from "express-mongo-sanitize";
 
 const PORT = 3000;
 const app = express();
@@ -16,11 +18,19 @@ const options = {
     cert: fs.readFileSync('keys/mongodb-cert.pem')
 }
 
+//To use helmet for securing HTTP headers
+app.use(helmet());
+
+// To prevent clickjacking by disallowing iframes
+app.use(helmet.frameguard({ action: "deny" }));
+
+// To sanitize user input and prevent MongoDB operator injection
+app.use(mongoSanitize());
+
 app.use(cors());
 app.use(express.json());
 
-app.use((req, res, next) => 
-{
+app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', '*');
