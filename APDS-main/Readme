@@ -92,89 +92,52 @@ Attack prevention:
         we also have this which makes it so that a user can not send a request that is greater than 10 kb in the json format
         app.use(express.json({ limit: "10kb" }));
 
--- XSS Prevention
+# XSS Prevention — Summary
 
-        Purpose
+**Purpose**
 
-        I added a server-side XSS prevention system to sanitize and safely handle user-supplied strings (e.g., signup fields) so we don’t store or reflect HTML/script content.
+I added a server-side XSS prevention system to sanitize and safely handle user-supplied strings (e.g., signup fields) so we don’t store or reflect HTML/script content.
 
-        **How it works**
+**How it works**
 
-        * The `clean()` helper uses `sanitize-html` with no allowed tags or attributes to strip any scripts or HTML.
-        * Sanitization happens before validation and database storage.
-        * Regex checks still apply to ensure format validity.
-        * Only safe values are stored and returned in responses.
+* A `clean()` helper uses `sanitize-html` (`allowedTags: [], allowedAttributes: {}`) to strip tags/attributes from string inputs.
+* Sanitization runs **before** validation and before saving to the database.
+* Regex validation runs on sanitized values.
+* Responses avoid echoing raw user input — we return only safe fields or IDs.
 
-        **Quick test script**
+**Testing with Postman**
 
-        Create a file `xss-test.mjs` and run it with `node xss-test.mjs` while your server is active:
+Use **Postman** to send a `POST` request to your signup route:
 
-        ```js
-        import fetch from 'node-fetch';
+```
+POST https://localhost:3000/user/signup
+Content-Type: application/json
 
-        const payloads = [
-        { fullName: "Hacker <script>alert('xss')</script>", idNumber: "098765432", accountNumber: "112233445566", name: "hacker_101", password: "StrongPass123" },
-        { fullName: "<img src=x onerror=alert('boom')>", idNumber: "123456789", accountNumber: "998877665544", name: "evil_user", password: "Pass1234" }
-        ];
+{
+  "fullName": "Hacker <script>alert('XSS')</script>",
+  "idNumber": "123456789",
+  "accountNumber": "12345678",
+  "name": "testuser",
+  "password": "TestPass123"
+}
+```
 
-        for (const body of payloads) {
-        const res = await fetch('https://localhost:3000/user/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        });
-        console.log(await res.json());
-        }
-        ```
+**Expected:**
 
-        Expected: The server either rejects invalid data or stores sanitized text (no tags/scripts).
+* Request returns `201` (user created) or `400` if validation fails.
+* No script tags or event attributes appear in stored data.
 
-        **Setup & run (quick)**
+**Notes / recommendations**
 
-        1. Ensure Node 18+ is installed (recommended).
-        2. Init a small project and install node-fetch:
+* Move JWT secret to `process.env.JWT_SECRET`.
+* Apply `clean()` to other routes that accept free-form input (posts, comments, profile updates).
+* Add automated tests that POST malicious payloads and confirm the DB only stores sanitized strings.
 
-        ```bash
-        npm init -y
-        npm install node-fetch@3
-        ```
+---
 
-        3. Create `xss-test.mjs` with the script below and run the server (https local dev must be running):
+**Summary for teammates**
 
-        ```js
-        // xss-test.mjs
-        import fetch from 'node-fetch';
-        import https from 'https';
-
-        const agent = new https.Agent({ rejectUnauthorized: false });
-        const payloads = [
-        { fullName: "Hacker <script>alert('xss')</script>", idNumber: "098765432", accountNumber: "112233445566", name: "hacker_101", password: "StrongPass123" },
-        { fullName: "<img src=x onerror=alert('boom')>", idNumber: "123456789", accountNumber: "998877665544", name: "evil_user", password: "Pass1234" }
-        ];
-
-        for (const body of payloads) {
-        const res = await fetch('https://localhost:3000/user/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        agent
-        });
-        console.log('STATUS', res.status);
-        const text = await res.text();
-        console.log('BODY', text);
-        }
-        ```
-
-        4. Run the script:
-
-        ```bash
-        node xss-test.mjs
-        ```
-
-        Notes:
-
-        * We use `rejectUnauthorized: false` for local self-signed certs. Do **not** do this in production.
-        * Alternatively, use the `curl -k` examples in this README if you prefer not to run Node.
+I created an XSS prevention system that sanitizes user inputs before validation and storage. Testing can be done directly through **Postman**, ensuring any `<script>` or `onerror` payloads are cleaned or rejected. The signup flow now validates safe inputs, and the DB never stores HTML or script content.
 
 
 -- Clickjacking
