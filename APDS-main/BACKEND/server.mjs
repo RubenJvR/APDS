@@ -12,17 +12,17 @@ import mongoSanitize from "express-mongo-sanitize";
 import cookieParser from "cookie-parser";
 
 const HTTPS_PORT = process.env.HTTPS_PORT || 3000;
-const HTTP_PORT  = process.env.HTTP_PORT  || 3001; // plain-HTTP catcher port for friendly errors
+const HTTP_PORT  = process.env.HTTP_PORT  || 3001; // HTTP catcher port
 
 const app = express();
 
-// === TLS options (replace with your real cert/key in production) ===
+// TLS options
 const options = {
   key: fs.readFileSync("keys/mongodb-key.pem"),
   cert: fs.readFileSync("keys/mongodb-cert.pem")
 };
 
-// === Security / general middleware ===
+// middleware 
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 10,
@@ -30,22 +30,21 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// sanitize input to prevent MongoDB operator injection
+// sanitizes inputs
 app.use(mongoSanitize());
 
-// Allow JSON bodies (single call)
+// Allow JSON bodies 
 app.use(express.json({ limit: "10kb" }));
 
-// cookies (for your secure httpOnly session cookie)
+// cookies 
 app.use(cookieParser());
 
-// use helmet and explicit frameguard
+// use helmet framegaurd to prevent clickjacking
 app.use(helmet());
 app.use(helmet.frameguard({ action: "deny" }));
 
-// CORS - currently permissive; tighten in production
 app.use(cors());
-// If you still need custom headers, consider limiting them in production:
+
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "*");
@@ -53,7 +52,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// === Routes ===
+//  Routes 
 app.use("/user", users);
 app.route("/user", users);
 
@@ -69,27 +68,24 @@ app.get("/test-db", async (req, res) => {
   }
 });
 
-// === Create HTTPS server ===
+//  Creates HTTPS server
 const httpsServer = https.createServer(options, app);
 httpsServer.listen(HTTPS_PORT, () => {
   console.log(`✅ HTTPS server listening on https://localhost:${HTTPS_PORT}`);
 });
 
-// === Create HTTP server to return a friendly JSON error ===
+// Create HTTP server to return message to user
 const httpServer = http.createServer((req, res) => {
-  // Option A: Return an explicit JSON error (403 or 426)
-  res.writeHead(426, { "Content-Type": "application/json" }); // 426 Upgrade Required
+
+  res.writeHead(426, { "Content-Type": "application/json" }); 
   res.end(JSON.stringify({
     error: "Insecure connection detected. Please use HTTPS.",
     instructions: `Use https://localhost:${HTTPS_PORT}${req.url}`
   }));
 
-  // --- Option B: (alternative) Redirect to HTTPS instead of returning error
-  // const host = req.headers.host ? req.headers.host.split(':')[0] : 'localhost';
-  // res.writeHead(301, { Location: `https://${host}:${HTTPS_PORT}${req.url}` });
-  // res.end();
 });
 httpServer.listen(HTTP_PORT, () => {
   console.log(`🚫 Plain HTTP catcher listening on http://localhost:${HTTP_PORT}`);
   console.log(`→ Plain HTTP requests to this port will receive a JSON error advising HTTPS.`);
 });
+
