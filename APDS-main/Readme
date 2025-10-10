@@ -1,10 +1,22 @@
 This is our APDS7312 POE_2 backend
 
+To run the system use : npm run dev
+
+Users can use pastman to test featuers
+
 Features list:
 -- Signup 
+        Used to sign up new users. 
+                post https://localhost:3000/user/signup
 -- Login
+        Used to log in existing
+                post https://localhost:3000/user/login
 -- Transfer
+        used to transfer money
+                post https://localhost:3000/user/transfer
 -- Add Funds
+        used to add funds
+                post https://localhost:3000/user//add-funds
 
 All traffic is served over SSL
 
