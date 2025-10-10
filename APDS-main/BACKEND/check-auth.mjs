@@ -30,6 +30,6 @@ const checkauth = (req, res, next) => {
             message: "token invalid"
         });
     }
-};
+};                          
 
 export default checkauth;
