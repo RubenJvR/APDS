@@ -80,5 +80,90 @@ Attack prevention:
         we also have this which makes it so that a user can not send a request that is greater than 10 kb in the json format
         app.use(express.json({ limit: "10kb" }));
 
+# XSS Prevention
+
+Purpose
+
+I added a server-side XSS prevention system to sanitize and safely handle user-supplied strings (e.g., signup fields) so we don’t store or reflect HTML/script content.
+
+**How it works**
+
+* The `clean()` helper uses `sanitize-html` with no allowed tags or attributes to strip any scripts or HTML.
+* Sanitization happens before validation and database storage.
+* Regex checks still apply to ensure format validity.
+* Only safe values are stored and returned in responses.
+
+**Quick test script**
+
+Create a file `xss-test.mjs` and run it with `node xss-test.mjs` while your server is active:
+
+```js
+import fetch from 'node-fetch';
+
+const payloads = [
+  { fullName: "Hacker <script>alert('xss')</script>", idNumber: "098765432", accountNumber: "112233445566", name: "hacker_101", password: "StrongPass123" },
+  { fullName: "<img src=x onerror=alert('boom')>", idNumber: "123456789", accountNumber: "998877665544", name: "evil_user", password: "Pass1234" }
+];
+
+for (const body of payloads) {
+  const res = await fetch('https://localhost:3000/user/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  console.log(await res.json());
+}
+```
+
+Expected: The server either rejects invalid data or stores sanitized text (no tags/scripts).
+
+**Setup & run (quick)**
+
+1. Ensure Node 18+ is installed (recommended).
+2. Init a small project and install node-fetch:
+
+```bash
+npm init -y
+npm install node-fetch@3
+```
+
+3. Create `xss-test.mjs` with the script below and run the server (https local dev must be running):
+
+```js
+// xss-test.mjs
+import fetch from 'node-fetch';
+import https from 'https';
+
+const agent = new https.Agent({ rejectUnauthorized: false });
+const payloads = [
+  { fullName: "Hacker <script>alert('xss')</script>", idNumber: "098765432", accountNumber: "112233445566", name: "hacker_101", password: "StrongPass123" },
+  { fullName: "<img src=x onerror=alert('boom')>", idNumber: "123456789", accountNumber: "998877665544", name: "evil_user", password: "Pass1234" }
+];
+
+for (const body of payloads) {
+  const res = await fetch('https://localhost:3000/user/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    agent
+  });
+  console.log('STATUS', res.status);
+  const text = await res.text();
+  console.log('BODY', text);
+}
+```
+
+4. Run the script:
+
+```bash
+node xss-test.mjs
+```
+
+Notes:
+
+* We use `rejectUnauthorized: false` for local self-signed certs. Do **not** do this in production.
+* Alternatively, use the `curl -k` examples in this README if you prefer not to run Node.
+
+
 
         
