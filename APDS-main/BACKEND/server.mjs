@@ -1,15 +1,14 @@
 import https from "https";
 import http from "http"
 import fs from "fs";
-import fruits from "./routes/fruit.mjs"
 import users from "./routes/user.mjs"
-import posts from "./routes/post.mjs"
 import express from "express"
 import assert from "assert";
 import cors from "cors"
 import db from "./db/conn.mjs";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import mongoSanitize from 'express-mongo-sanitize';
 
 const PORT = 3000;
 const app = express();
@@ -32,9 +31,16 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
+// To sanitize user input and prevent MongoDB operator injection
+app.use(mongoSanitize());
+
 app.use(cors());
 app.use(express.json());
+//To use helmet for securing HTTP headers
 app.use(helmet());
+
+// To prevent clickjacking by disallowing iframes
+app.use(helmet.frameguard({ action: "deny" }));
 //limits the size of data a user sends
 app.use(express.json({ limit: "10kb" }));
 
@@ -50,10 +56,6 @@ app.use((req, res, next) =>
 }
 )
 
-app.use("/fruit", fruits);
-app.route("/fruit", fruits);
-app.use("/post", posts);
-app.route("/post", posts);
 app.use("/user", users);
 app.route("/user", users);
 
