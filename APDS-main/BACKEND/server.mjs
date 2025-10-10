@@ -35,6 +35,8 @@ app.use(limiter);
 app.use(cors());
 app.use(express.json());
 app.use(helmet());
+//limits the size of data a user sends
+app.use(express.json({ limit: "10kb" }));
 
 app.use(cookieParser()); // enables reading secure cookies for session validation
 
