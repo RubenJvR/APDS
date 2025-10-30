@@ -1,0 +1,233 @@
+/* Base theme */
+body {
+  background-color: #0a0a0a; /* deep black background */
+  color: #e0e0e0; /* light silver text */
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Navbar styling */
+.navbar {
+  background-color: #1a1a1a /* dark navbar */;
+  border-bottom: 2px solid #d4af37; /* gold border */
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.3s ease; /* smooth transition */
+}
+
+.navbar-brand img {
+  border-radius: 50%;
+  height: 40px;
+  width: 40px;
+  margin-right: 10px;
+  transition: transform 0.3s ease;
+}
+
+.nav-link {
+  color: #d4af37 !important; /* gold links */
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: #c0c0c0 !important; /* silver on hover */
+  text-decoration: underline;
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+/* Container styling */
+.container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #1a1a1a; /* dark card */
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); /* subtle gold glow */
+  transition: box-shadow 0.3s ease;
+
+}
+
+/* Form styling */
+form input, form button {
+  display: block;
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid #d4af37;
+  background-color: #0f0f0f;
+  color: #e0e0e0;
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+}
+
+form input:focus {
+  outline: none;
+  border-color: #c0c0c0;
+  box-shadow: 0 0 5px #d4af37;
+}
+
+form button {
+  background-color: #d4af37; /* gold button */
+  color: #0f0f0f;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+
+}
+
+form button:hover {
+  background-color: #c0c0c0; /* silver on hover */
+  color: #1a1a1a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive table */
+.table {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  border-color: #d4af37;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+  width: 100%;
+  margin-bottom: 1rem;
+  border-collapse: collapse;
+}
+
+.table th, .table td {
+  vertical-align: middle !important;
+}
+
+.table th {
+  border-bottom: 2px solid #d4af37;
+}
+
+/* Messages / Alerts */
+.message {
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.message.success {
+  background-color: #d4af37;
+  color: #0f0f0f;
+}
+
+.message.error {
+  background-color: #c0c0c0;
+  color: #1a1a1a;
+}
+
+/* Transfers table styling */
+.transfers-page table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #111;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+}
+
+.transfers-page th {
+  background: linear-gradient(145deg, #d4af37, #c0c0c0);
+  color: #0f0f0f;
+  padding: 1rem;
+  text-align: left;
+  font-weight: bold;
+}
+
+.transfers-page td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #333;
+  color: #e0e0e0;
+}
+
+.transfers-page tr:nth-child(even) {
+  background-color: #1b1b1b;
+}
+
+.transfers-page tr:hover {
+  background-color: #2a2a2a;
+  transition: background 0.3s ease;
+}
+
+.amount {
+  color: #d4af37;
+  font-weight: bold;
+}
+
+/* Empty message row */
+.transfers-page td[colspan="4"] {
+  color: #999;
+  padding: 2rem 0;
+  font-style: italic;
+}
+/* Overview cards */
+.overview-cards {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.overview-card {
+  background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+  border: 1px solid #333;
+  border-radius: 14px;
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.3);
+  padding: 1.5rem 2rem;
+  flex: 1 1 250px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.overview-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 30px rgba(192, 192, 192, 0.4);
+}
+
+.overview-card h3 {
+  color: #c0c0c0;
+  font-size: 1.2rem;
+  margin-bottom: 0.6rem;
+}
+
+.overview-card p {
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.gold-text {
+  color: #d4af37;
+}
+
+.silver-text {
+  color: #c0c0c0;
+}
+
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+    margin: 1rem;
+  }
+
+  .navbar-nav {
+    text-align: center;
+  }
+}

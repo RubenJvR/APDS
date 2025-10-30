@@ -196,6 +196,28 @@ router.post("/transfer",limiter, checkauth, async (req, res) => {
             { $inc: { balance: amount } }
         );
 
+        // inside router.post("/transfer", ...)
+await collection.updateOne(
+  { accountNumber: fromAccountNumber },
+  { $inc: { balance: -amount } }
+);
+await collection.updateOne(
+  { accountNumber: toAccountNumber },
+  { $inc: { balance: amount } }
+);
+
+// log the transaction
+const transfers = await db.collection("transfers");
+await transfers.insertOne({
+  from: fromAccountNumber,
+  to: toAccountNumber,
+  amount: parseFloat(amount),
+  date: new Date()
+});
+
+res.status(200).json({ message: "Transfer successful" });
+
+
         res.status(200).json({ message: "Transfer successful" });
     } catch (error) {
         console.error("Transfer error:", error);
@@ -241,5 +263,56 @@ router.post("/add-funds",limiter, checkauth, async (req, res) => {
     }
 });
 //feel free to add a route for user balances( but checking the db works too)
+router.get("/transfers", limiter, checkauth, async (req, res) => {
+  try {
+    const transfers = await db.collection("transfers")
+      .find({ 
+        $or: [
+          { from: req.user.accountNumber }, 
+          { to: req.user.accountNumber }
+        ] 
+      })
+      .sort({ date: -1 })
+      .toArray();
+    res.json(transfers);
+  } catch (error) {
+    console.error("Error fetching transfers:", error);
+    res.status(500).json({ message: "Could not fetch transfers" });
+  }
+});
+
+router.get("/balance", limiter, checkauth, async (req, res) => {
+  try {
+    const user = await db.collection("users").findOne({
+      accountNumber: req.user.accountNumber
+    });
+
+    const transfers = await db.collection("transfers")
+      .find({
+        $or: [
+          { from: req.user.accountNumber },
+          { to: req.user.accountNumber }
+        ]
+      })
+      .toArray();
+
+    let totalSent = 0;
+    let totalReceived = 0;
+
+    transfers.forEach(t => {
+      if (t.from === req.user.accountNumber) totalSent += t.amount;
+      if (t.to === req.user.accountNumber) totalReceived += t.amount;
+    });
+
+    res.json({
+      balance: user.balance || 0,
+      totalSent,
+      totalReceived
+    });
+  } catch (error) {
+    console.error("Error fetching balance:", error);
+    res.status(500).json({ message: "Error fetching balance data" });
+  }
+});
 
 export default router
