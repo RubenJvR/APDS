@@ -20,7 +20,7 @@ export default function Register() {
   return (
 
     <div className="container mt-4">
-      <h2>Register</h2>
+       <h2 className="text-center mb-4" style={{ color: "#d4af37" }}>Register</h2>
       {message && <p>{message}</p>}
       <form onSubmit={handleSubmit}>
   {message && <p className={`message ${message.includes("success") ? "success" : "error"}`}>{message}</p>}

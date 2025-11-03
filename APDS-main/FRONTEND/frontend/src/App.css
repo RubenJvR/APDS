@@ -219,6 +219,42 @@ form button:hover {
   color: #c0c0c0;
 }
 
+/* Transfer Form Styling */
+.transfer-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.transfer-form label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.transfer-guidelines {
+  background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.transfer-guidelines h4 {
+  color: #d4af37;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.transfer-guidelines ul {
+  color: #c0c0c0;
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.transfer-guidelines li {
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
 
 /* Mobile adjustments */
 @media (max-width: 768px) {

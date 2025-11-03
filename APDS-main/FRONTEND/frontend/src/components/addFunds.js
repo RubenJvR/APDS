@@ -13,7 +13,7 @@ export default function AddFunds() {
 
   return (
     <div className="container mt-4">
-      <h2>Add Funds</h2>
+       <h2 className="text-center mb-4" style={{ color: "#d4af37" }}>Add Funds</h2>
       {message && <p>{message}</p>}
       <form onSubmit={handleSubmit}>
         <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" />
