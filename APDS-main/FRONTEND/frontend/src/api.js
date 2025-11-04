@@ -1,41 +1,103 @@
-// frontend/src/api.js
-const BASE_URL = "https://localhost:3000/user"; // or http://localhost:3000 if using HTTP
+// src/api/index.js - COMPLETE VERSION
+const API_BASE_URL = 'http://localhost:3001';
 
+// Simple fetch wrapper
+async function fetchAPI(endpoint, options = {}) {
+  const url = `${API_BASE_URL}${endpoint}`;
+  
+  const config = {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  };
+
+  if (options.body) {
+    config.body = JSON.stringify(options.body);
+  }
+
+  try {
+    const response = await fetch(url, config);
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || `HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('API call failed:', error);
+    throw error;
+  }
+}
+
+// Test functions
+export async function testConnection() {
+  return fetchAPI('/health');
+}
+
+export async function testDB() {
+  return fetchAPI('/test-db');
+}
+
+// Auth functions
 export async function signup(userData) {
-  const res = await fetch(`${BASE_URL}/signup`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(userData),
+  return fetchAPI('/user/signup', {
+    method: 'POST',
+    body: userData
   });
-  return res.json();
 }
 
 export async function login(credentials) {
-  const res = await fetch(`${BASE_URL}/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(credentials),
-    credentials: "include", // to include httpOnly cookie
+  return fetchAPI('/user/login', {
+    method: 'POST',
+    body: credentials
   });
-  return res.json();
 }
 
-export async function addFunds(amount) {
-  const res = await fetch(`${BASE_URL}/add-funds`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ amount }),
-    credentials: "include",
-  });
-  return res.json();
+// User functions
+export async function getBalance() {
+  return fetchAPI('/user/balance');
+}
+
+export async function getTransfers() {
+  return fetchAPI('/user/transfers');
 }
 
 export async function transferFunds(toAccountNumber, amount) {
-  const res = await fetch(`${BASE_URL}/transfer`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ toAccountNumber, amount }),
-    credentials: "include",
+  return fetchAPI('/user/transfer', {
+    method: 'POST',
+    body: { toAccountNumber, amount: parseFloat(amount) }
   });
-  return res.json();
 }
+
+export async function addFunds(amount) {
+  return fetchAPI('/user/add-funds', {
+    method: 'POST',
+    body: { amount: parseFloat(amount) }
+  });
+}
+
+// Check if user is authenticated
+export async function checkAuth() {
+  try {
+    const balance = await getBalance();
+    return { authenticated: true, user: balance };
+  } catch (error) {
+    return { authenticated: false };
+  }
+}
+
+export default {
+  testConnection,
+  testDB,
+  signup,
+  login,
+  getBalance,
+  getTransfers,
+  transferFunds,
+  addFunds,
+  checkAuth
+};

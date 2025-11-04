@@ -1,7 +1,6 @@
+// routes/user.mjs - COMPLETELY FIXED VERSION
 import express from "express";
-import assert from "assert";
 import db from "../db/conn.mjs";
-import { ObjectId } from "mongodb";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import ExpressBrute from "express-brute";
@@ -17,7 +16,7 @@ function clean(value) {
 
 const router = express.Router();
 
-// limits rates for requests
+// Rate limits
 const limiter = rateLimit({
     windowMs: 5 * 60 * 1000, 
     max: 100,
@@ -33,239 +32,318 @@ const limiterSignup = rateLimit({
 var store = new ExpressBrute.MemoryStore();
 var bruteforce = new ExpressBrute(store);
 
+// Session store to prevent duplicate requests
+const pendingRequests = new Map();
+
+function getRequestKey(req) {
+  return `${req.method}-${req.path}-${req.user?.accountNumber}-${JSON.stringify(req.body)}`;
+}
+
 router.post("/signup", limiterSignup, async (req, res) => {
   const { fullName: rawFullName, idNumber: rawIdNumber, accountNumber: rawAccountNumber, name: rawName, password } = req.body;
+  
   if (!rawFullName || !rawIdNumber || !rawAccountNumber || !rawName || !password) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
-  // sanitize BEFORE validation
+  // Sanitize inputs
   const fullName = clean(rawFullName);
   const name = clean(rawName);
   const idNumber = String(rawIdNumber).trim();
   const accountNumber = String(rawAccountNumber).trim();
   
-    //Regex can be changed for later
-    const fullNameRegex = /^[A-Za-z ]{2,}$/;
-    const idNumberRegex = /^\d{9}$/;
-    const accountNumberRegex = /^\d{8,12}$/;
-    const nameRegex = /^\w{3,15}$/;
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
+  // Validation regex
+  const fullNameRegex = /^[A-Za-z ]{2,}$/;
+  const idNumberRegex = /^\d{9}$/;
+  const accountNumberRegex = /^\d{8,12}$/;
+  const nameRegex = /^\w{3,15}$/;
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
 
-    //checks the regex against the user entered details
-    if (!fullNameRegex.test(fullName)) {
-        return res.status(400).json({ message: "Full name must only contain letters and spaces." });
-    }
-    if (!idNumberRegex.test(idNumber)) {
-        return res.status(400).json({ message: "ID number must be exactly 9 digits." });
-    }
-    if (!accountNumberRegex.test(accountNumber)) {
-        return res.status(400).json({ message: "Account number must be 8–12 digits." });
-    }
-    if (!nameRegex.test(name)) {
-        return res.status(400).json({ message: "Username must be 3–15 characters, letters/numbers/underscores only." });
-    }
-    if (!passwordRegex.test(password)) {
-        return res.status(400).json({ message: "Password must be at least 8 chars, with uppercase, lowercase, and number." });
-    }
-    try {
+  // Validate inputs
+  if (!fullNameRegex.test(fullName)) {
+      return res.status(400).json({ message: "Full name must only contain letters and spaces." });
+  }
+  if (!idNumberRegex.test(idNumber)) {
+      return res.status(400).json({ message: "ID number must be exactly 9 digits." });
+  }
+  if (!accountNumberRegex.test(accountNumber)) {
+      return res.status(400).json({ message: "Account number must be 8–12 digits." });
+  }
+  if (!nameRegex.test(name)) {
+      return res.status(400).json({ message: "Username must be 3–15 characters, letters/numbers/underscores only." });
+  }
+  if (!passwordRegex.test(password)) {
+      return res.status(400).json({ message: "Password must be at least 8 chars, with uppercase, lowercase, and number." });
+  }
 
-        const collection = await db.collection("users");
+  try {
+    const collection = await db.collection("users");
 
-        const exists = await collection.findOne({
-            $or: [{name}, {accountNumber}]
-        });
-        if(exists){
-            return res.status(409).json({message: "Username, or account number already in use"})
-        }
-
-        const SALT_ROUNDS = 12;
-        const hashed = await bcrypt.hash(password, SALT_ROUNDS);
-
-        let newDocument = {
-            fullName,
-            idNumber,
-            accountNumber,
-            name,
-            password: hashed,
-            balance: 0 
-        };
-        
-        let result = await collection.insertOne(newDocument);
-        res.status(201).json({message: "User created", id: result});
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ message: "Signup failed." });
+    const exists = await collection.findOne({
+        $or: [{name}, {accountNumber}]
+    });
+    
+    if(exists){
+        return res.status(409).json({message: "Username or account number already in use"});
     }
+
+    const SALT_ROUNDS = 12;
+    const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+
+    let newDocument = {
+        fullName,
+        idNumber,
+        accountNumber,
+        name,
+        password: hashed,
+        balance: 0,
+        createdAt: new Date()
+    };
+    
+    let result = await collection.insertOne(newDocument);
+    res.status(201).json({message: "User created successfully", id: result.insertedId});
+    
+  } catch (e) {
+    console.error("Signup error:", e);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Signup failed. Please try again." });
+    }
+  }
 });
 
-
-
-router.post("/login",limiter , bruteforce.prevent, async (req, res) => {
+router.post("/login", limiter, bruteforce.prevent, async (req, res) => {
     const { name, accountNumber, password } = req.body;
+    
     if (!name || !accountNumber || !password) {
         return res.status(400).json({ message: "All fields are required." });
     }
+    
     try {
         const collection = await db.collection("users");
         const user = await collection.findOne({ name, accountNumber });
 
         if (!user) {
-            return res.status(401).json({ message: "Authentication failed" });
+            return res.status(401).json({ message: "Invalid credentials" });
         }
 
         const passwordMatch = await bcrypt.compare(password, user.password);
 
         if (!passwordMatch) {
-            return res.status(401).json({ message: "Authentication failed" });
-        } else {
-            
-            // regenerate JWT with unique JWT ID for each login to prevent session fixation
-            // embed IP and user agent in JWT for anomaly detection
-            const jti = crypto.randomBytes(16).toString("hex");
-
-            
-
-            const token = jwt.sign(
-              {
-                name: user.name,
-                accountNumber: user.accountNumber,
-                jti,
-                ip: req.ip,
-                ua: req.headers["user-agent"]
-              },
-              "this_secret_should_be_longer_than_it_is",
-              { expiresIn: "30m" }
-            );
-            // send the token via an HTTP only secure cookie
-            res.cookie("session", token, {
-                httpOnly: true, 
-                secure: true, 
-                sameSite: "strict", 
-                maxAge: 30 * 60 * 1000 // 30 mins
-            });
-            
-            res.status(200).json({
-                message: "Authentication successful",
-                name: user.name,
-                accountNumber: user.accountNumber
-            });
+            return res.status(401).json({ message: "Invalid credentials" });
         }
+
+        // Generate JWT
+        const jti = crypto.randomBytes(16).toString("hex");
+        const token = jwt.sign(
+          {
+            name: user.name,
+            accountNumber: user.accountNumber,
+            jti,
+            ip: req.ip,
+            ua: req.headers["user-agent"]
+          },
+          "this_secret_should_be_longer_than_it_is",
+          { expiresIn: "30m" }
+        );
+
+        // Set cookie - modified for development
+        res.cookie("session", token, {
+            httpOnly: true, 
+            secure: false, // false for HTTP development
+            sameSite: "lax", // lax for development
+            maxAge: 30 * 60 * 1000 // 30 mins
+        });
+        
+        res.status(200).json({
+            message: "Login successful",
+            name: user.name,
+            accountNumber: user.accountNumber
+        });
+        
     } catch (error) {
         console.error("Login error:", error);
-        res.status(500).json({ message: "Login failed" });
+        if (!res.headersSent) {
+            res.status(500).json({ message: "Login failed" });
+        }
     }
-})
+});
 
-router.post("/transfer",limiter, checkauth, async (req, res) => {
+// FIXED TRANSFER ROUTE - Prevents double transfers
+router.post("/transfer", limiter, checkauth, async (req, res) => {
+    const requestKey = getRequestKey(req);
+    
+    // Prevent duplicate requests
+    if (pendingRequests.has(requestKey)) {
+        return res.status(429).json({ message: "Request already processing" });
+    }
+    
+    pendingRequests.set(requestKey, true);
+    
     const { toAccountNumber, amount } = req.body;
     const fromAccountNumber = req.user.accountNumber;
 
-    const amountRegex = /^\d+$/;
-    const toAccountNumberRegex = /^\d{8,12}$/;
-
-    if (!amountRegex.test(amount)) {
-        return res.status(400).json({ message: "Amount must be a number" });
-    }
-
-    if (!toAccountNumberRegex.test(toAccountNumber)) {
-        return res.status(400).json({ message: "Account number must be 8–12 digits." });
-    }
-
+    // Input validation
     if (!toAccountNumber || !amount || amount <= 0) {
+        pendingRequests.delete(requestKey);
         return res.status(400).json({ message: "Invalid transfer details" });
     }
 
-    try {
-        const collection = await db.collection("users");
-        const sender = await collection.findOne({ accountNumber: fromAccountNumber });
-        const receiver = await collection.findOne({ accountNumber: toAccountNumber });
+    const amountRegex = /^\d+(\.\d{1,2})?$/;
+    const toAccountNumberRegex = /^\d{8,12}$/;
 
-        if (!sender || !receiver) {
-            return res.status(404).json({ message: "Account not found" });
-        }
-
-        if ((sender.balance || 0) < amount) {
-            return res.status(400).json({ message: "Insufficient funds" });
-        }
-
-        // needed to update the balance of respective accounts on the system
-        await collection.updateOne(
-            { accountNumber: fromAccountNumber },
-            { $inc: { balance: -amount } }
-        );
-        await collection.updateOne(
-            { accountNumber: toAccountNumber },
-            { $inc: { balance: amount } }
-        );
-
-        // inside router.post("/transfer", ...)
-await collection.updateOne(
-  { accountNumber: fromAccountNumber },
-  { $inc: { balance: -amount } }
-);
-await collection.updateOne(
-  { accountNumber: toAccountNumber },
-  { $inc: { balance: amount } }
-);
-
-// log the transaction
-const transfers = await db.collection("transfers");
-await transfers.insertOne({
-  from: fromAccountNumber,
-  to: toAccountNumber,
-  amount: parseFloat(amount),
-  date: new Date()
-});
-
-res.status(200).json({ message: "Transfer successful" });
-
-
-        res.status(200).json({ message: "Transfer successful" });
-    } catch (error) {
-        console.error("Transfer error:", error);
-        res.status(500).json({ message: "Transfer failed" });
-    }
-});
-
-// added this so a user would be able to add funds to their account without transferring it to themselves or something else dumb
-router.post("/add-funds",limiter, checkauth, async (req, res) => {
-    const { amount } = req.body;
-    const accountNumber = req.user.accountNumber;
-
-    const amountRegex = /^\d+$/;
-    const accountNumberRegex = /^\d{8,12}$/;
-
-    if (!amountRegex.test(amount)) {
-        return res.status(400).json({ message: "Amount must be a number" });
+    if (!amountRegex.test(amount.toString())) {
+        pendingRequests.delete(requestKey);
+        return res.status(400).json({ message: "Amount must be a positive number" });
     }
 
-    if (!accountNumberRegex.test(accountNumber)) {
+    if (!toAccountNumberRegex.test(toAccountNumber)) {
+        pendingRequests.delete(requestKey);
         return res.status(400).json({ message: "Account number must be 8–12 digits." });
     }
+
+    // Prevent transferring to self
+    if (fromAccountNumber === toAccountNumber) {
+        pendingRequests.delete(requestKey);
+        return res.status(400).json({ message: "Cannot transfer to your own account" });
+    }
+
+    const session = db.client.startSession();
+    
+    try {
+        await session.withTransaction(async () => {
+            const collection = db.collection("users");
+            
+            // Get sender with lock
+            const sender = await collection.findOne(
+                { accountNumber: fromAccountNumber },
+                { session }
+            );
+            
+            if (!sender) {
+                throw new Error("Sender account not found");
+            }
+
+            // Get receiver
+            const receiver = await collection.findOne(
+                { accountNumber: toAccountNumber },
+                { session }
+            );
+            
+            if (!receiver) {
+                throw new Error("Recipient account not found");
+            }
+
+            // Check balance
+            if ((sender.balance || 0) < parseFloat(amount)) {
+                throw new Error("Insufficient funds");
+            }
+
+            // Update balances atomically
+            await collection.updateOne(
+                { accountNumber: fromAccountNumber },
+                { $inc: { balance: -parseFloat(amount) } },
+                { session }
+            );
+            
+            await collection.updateOne(
+                { accountNumber: toAccountNumber },
+                { $inc: { balance: parseFloat(amount) } },
+                { session }
+            );
+
+            // Log the transaction
+            const transfers = db.collection("transfers");
+            await transfers.insertOne({
+                from: fromAccountNumber,
+                to: toAccountNumber,
+                amount: parseFloat(amount),
+                date: new Date(),
+                type: "transfer"
+            }, { session });
+        });
+
+        // Success - send response ONCE
+        res.status(200).json({ 
+            message: "Transfer successful",
+            amount: parseFloat(amount),
+            toAccount: toAccountNumber
+        });
+
+    } catch (error) {
+        console.error("Transfer error:", error);
+        
+        if (!res.headersSent) {
+            if (error.message === "Insufficient funds") {
+                res.status(400).json({ message: "Insufficient funds" });
+            } else if (error.message.includes("not found")) {
+                res.status(404).json({ message: error.message });
+            } else {
+                res.status(500).json({ message: "Transfer failed. Please try again." });
+            }
+        }
+    } finally {
+        // Clean up
+        pendingRequests.delete(requestKey);
+        await session.endSession();
+    }
+});
+
+router.post("/add-funds", limiter, checkauth, async (req, res) => {
+    const { amount } = req.body;
+    const accountNumber = req.user.accountNumber;
 
     if (!amount || amount <= 0) {
         return res.status(400).json({ message: "Invalid amount" });
     }
 
+    const amountRegex = /^\d+(\.\d{1,2})?$/;
+    if (!amountRegex.test(amount.toString())) {
+        return res.status(400).json({ message: "Amount must be a positive number" });
+    }
+
+    const session = db.client.startSession();
+    
     try {
-        const collection = await db.collection("users");
-        const result = await collection.updateOne(
-            { accountNumber },
-            { $inc: { balance: amount } }
-        );
+        await session.withTransaction(async () => {
+            const collection = db.collection("users");
+            
+            // Update balance
+            const result = await collection.updateOne(
+                { accountNumber },
+                { $inc: { balance: parseFloat(amount) } },
+                { session }
+            );
 
-        if (result.modifiedCount === 0) {
-            return res.status(404).json({ message: "Account not found" });
-        }
+            if (result.modifiedCount === 0) {
+                throw new Error("Account not found");
+            }
 
-        res.status(200).json({ message: "Funds added successfully" });
+            // Log the transaction
+            const transfers = db.collection("transfers");
+            await transfers.insertOne({
+                from: "SYSTEM",
+                to: accountNumber,
+                amount: parseFloat(amount),
+                date: new Date(),
+                type: "deposit"
+            }, { session });
+        });
+
+        res.status(200).json({ 
+            message: "Funds added successfully",
+            amount: parseFloat(amount)
+        });
+
     } catch (error) {
         console.error("Add funds error:", error);
-        res.status(500).json({ message: "Failed to add funds" });
+        if (!res.headersSent) {
+            res.status(500).json({ message: "Failed to add funds" });
+        }
+    } finally {
+        await session.endSession();
     }
 });
-//feel free to add a route for user balances( but checking the db works too)
+
 router.get("/transfers", limiter, checkauth, async (req, res) => {
   try {
     const transfers = await db.collection("transfers")
@@ -276,11 +354,15 @@ router.get("/transfers", limiter, checkauth, async (req, res) => {
         ] 
       })
       .sort({ date: -1 })
+      .limit(50) // Limit to prevent overload
       .toArray();
+      
     res.json(transfers);
   } catch (error) {
     console.error("Error fetching transfers:", error);
-    res.status(500).json({ message: "Could not fetch transfers" });
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Could not fetch transfers" });
+    }
   }
 });
 
@@ -289,6 +371,10 @@ router.get("/balance", limiter, checkauth, async (req, res) => {
     const user = await db.collection("users").findOne({
       accountNumber: req.user.accountNumber
     });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     const transfers = await db.collection("transfers")
       .find({
@@ -310,12 +396,26 @@ router.get("/balance", limiter, checkauth, async (req, res) => {
     res.json({
       balance: user.balance || 0,
       totalSent,
-      totalReceived
+      totalReceived,
+      accountNumber: user.accountNumber,
+      name: user.name
     });
   } catch (error) {
     console.error("Error fetching balance:", error);
-    res.status(500).json({ message: "Error fetching balance data" });
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Error fetching balance data" });
+    }
   }
 });
 
-export default router
+// Logout route
+router.post("/logout", (req, res) => {
+  res.clearCookie("session", {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax"
+  });
+  res.json({ message: "Logged out successfully" });
+});
+
+export default router;
