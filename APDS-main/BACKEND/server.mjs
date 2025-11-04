@@ -14,6 +14,14 @@ import cookieParser from "cookie-parser";
 const HTTPS_PORT = process.env.HTTPS_PORT || 3000;
 const HTTP_PORT  = process.env.HTTP_PORT  || 3001; // HTTP catcher port
 
+
+const allowedOrigins =[
+
+  "https://localhost:3000",
+  "https://localhost:3001"
+
+]
+
 const app = express();
 
 // TLS options
@@ -43,7 +51,23 @@ app.use(cookieParser());
 app.use(helmet());
 app.use(helmet.frameguard({ action: "deny" }));
 
-app.use(cors());
+app.use(cors({
+
+  origin: function(origin, callback){
+    if(!origin) return callback(null, true);
+
+    if(allowedOrigins.includes(origin)){
+      return callback(null, true);
+    } else{
+      return callback(new Error("CORS policy violation: Origin not allowed by CORS"), false)
+    }
+  },
+
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+
+}));
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");

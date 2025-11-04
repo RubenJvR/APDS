@@ -8,7 +8,7 @@ import ExpressBrute from "express-brute";
 import checkauth from "../check-auth.mjs";
 import rateLimit from "express-rate-limit";
 import sanitizeHtml from "sanitize-html";
-
+import crypto from "crypto";
 
 function clean(value) {
   if (typeof value !== "string") return value;
@@ -122,17 +122,20 @@ router.post("/login",limiter , bruteforce.prevent, async (req, res) => {
             
             // regenerate JWT with unique JWT ID for each login to prevent session fixation
             // embed IP and user agent in JWT for anomaly detection
-            const jti = Math.random().toString(36).substring(2) + Date.now();
+            const jti = crypto.randomBytes(16).toString("hex");
+
+            
+
             const token = jwt.sign(
-                {
-                    name: user.name,
-                    accountNumber: user.accountNumber,
-                    jti, // unique session id
-                    ip: req.ip, // users IP address
-                    ua: req.headers["user-agent"] // users browser info
-                },
-                "this_secret_should_be_longer_than_it_is",
-                { expiresIn: "30m" } // shorter expiry for security
+              {
+                name: user.name,
+                accountNumber: user.accountNumber,
+                jti,
+                ip: req.ip,
+                ua: req.headers["user-agent"]
+              },
+              "this_secret_should_be_longer_than_it_is",
+              { expiresIn: "30m" }
             );
             // send the token via an HTTP only secure cookie
             res.cookie("session", token, {
