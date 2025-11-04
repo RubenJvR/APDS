@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken"
-import assert from "assert";
 
 // middleware to check authentication using JWT
 const checkauth = (req, res, next) => {
