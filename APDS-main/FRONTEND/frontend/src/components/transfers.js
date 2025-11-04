@@ -30,7 +30,7 @@ export default function Transfers() {
 
   return (
     <div className="container transfers-page">
-      <h2 className="page-title">Transaction History</h2>
+      <h2 className="text-center mb-4" style={{ color: "#d4af37" }}>Transaction History</h2>
 
       {overview && (
         <div className="overview-cards">
