@@ -1,3 +1,4 @@
+// src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './App.css';
@@ -6,24 +7,27 @@ import Register from './components/register';
 import Login from './components/login';
 import AddFunds from './components/addFunds';
 import Transfer from './components/transfer'; 
-import Transfers from './components/transfers'; // For transaction history
+import Transfers from './components/transfers';
+import Home from './components/home';
 
-const App = () => {
+function App() {
   return (
     <Router>
-      <div>
+      <div className="App">
         <Navbar />
-        <Routes>
-          <Route path="/" element={<Transfers />} /> {/* Default page */}
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/add-funds" element={<AddFunds />} />
-          <Route path="/transfer" element={<Transfer />} /> {/* Transfer form */}
-          <Route path="/transfers" element={<Transfers />} /> {/* Transaction history */}
-        </Routes>
+        <div className="main-content">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/add-funds" element={<AddFunds />} />
+            <Route path="/transfer" element={<Transfer />} />
+            <Route path="/transfers" element={<Transfers />} />
+          </Routes>
+        </div>
       </div>
     </Router>
   );
-};
+}
 
 export default App;
