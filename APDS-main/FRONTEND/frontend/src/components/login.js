@@ -1,4 +1,3 @@
-// src/components/login.js
 import { useState } from "react";
 import { login } from "../api";
 import { useNavigate } from "react-router-dom";
@@ -10,10 +9,15 @@ export default function Login() {
     password: "" 
   });
   const [message, setMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({...form, [e.target.name]: e.target.value });
+  }
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   }
 
   const handleSubmit = async (e) => {
@@ -23,7 +27,7 @@ export default function Login() {
     try {
       const result = await login(form);
       setMessage(result.message);
-      if (result.message === "Authentication successful") {
+      if (result.message === "Login successful") {
         setTimeout(() => navigate("/"), 1000);
       }
     } catch (error) {
@@ -35,35 +39,78 @@ export default function Login() {
     <div className="container mt-4">
       <h2 className="text-center mb-4" style={{ color: "#d4af37" }}>Login</h2>
       
-      {message && <p style={{ color: "#d4af37" }}>{message}</p>}
+      {message && (
+        <div 
+          className={`alert ${
+            message.includes("successful") ? "alert-success" : "alert-danger"
+          }`}
+          style={{ 
+            backgroundColor: message.includes("successful") ? "#d4edda" : "#f8d7da",
+            color: message.includes("successful") ? "#155724" : "#721c24",
+            padding: "10px",
+            borderRadius: "5px",
+            marginBottom: "20px",
+            border: "1px solid #c3e6cb"
+          }}
+        >
+          {message}
+        </div>
+      )}
       
       <form onSubmit={handleSubmit}>
-        <input 
-          name="name" 
-          placeholder="Username" 
-          value={form.name} 
-          onChange={handleChange}
-          required 
-        />
+        <div className="mb-3">
+          <input 
+            className="form-control"
+            name="name" 
+            placeholder="Username" 
+            value={form.name} 
+            onChange={handleChange}
+            required 
+          />
+        </div>
         
-        <input 
-          name="accountNumber" 
-          placeholder="Account Number" 
-          value={form.accountNumber} 
-          onChange={handleChange}
-          required 
-        />
+        <div className="mb-3">
+          <input 
+            className="form-control"
+            name="accountNumber" 
+            placeholder="Account Number" 
+            value={form.accountNumber} 
+            onChange={handleChange}
+            required 
+          />
+        </div>
         
-        <input 
-          type="password" 
-          name="password" 
-          placeholder="Password" 
-          value={form.password} 
-          onChange={handleChange}
-          required 
-        />
+        <div className="mb-3 position-relative">
+          <input 
+            type={showPassword ? "text" : "password"}
+            className="form-control"
+            name="password" 
+            placeholder="Password" 
+            value={form.password} 
+            onChange={handleChange}
+            required 
+          />
+          <button
+            type="button"
+            className="btn btn-outline-secondary position-absolute"
+            style={{
+              right: "5px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              border: "none",
+              background: "transparent"
+            }}
+            onClick={togglePasswordVisibility}
+          >
+            {showPassword ? (
+              <i className="bi bi-eye-slash"></i> // Hide icon
+            ) : (
+              <i className="bi bi-eye"></i> // Show icon
+            )}
+          </button>
+        </div>
         
-        <button type="submit">
+        <button type="submit" className="btn btn-primary w-100" style={{ backgroundColor: "#d4af37", borderColor: "#d4af37" }}>
           Login
         </button>
       </form>
