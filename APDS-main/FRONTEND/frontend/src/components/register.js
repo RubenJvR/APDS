@@ -1,4 +1,3 @@
-// src/components/register.js
 import { useState } from "react";
 import { signup } from "../api";
 import { useNavigate } from "react-router-dom";

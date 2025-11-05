@@ -168,7 +168,7 @@ router.post("/login", limiter, bruteforce.prevent, async (req, res) => {
     }
 });
 
-// FIXED TRANSFER ROUTE - Prevents double transfers
+// FIXED TRANSFER ROUTE - Prevents double transfers and handles edge cases
 router.post("/transfer", limiter, checkauth, async (req, res) => {
     const requestKey = getRequestKey(req);
     
@@ -179,29 +179,34 @@ router.post("/transfer", limiter, checkauth, async (req, res) => {
     
     pendingRequests.set(requestKey, true);
     
-    const { toAccountNumber, amount } = req.body;
+    const { toAccountNumber: rawToAccountNumber, amount: rawAmount } = req.body;
     const fromAccountNumber = req.user.accountNumber;
 
-    // Input validation
-    if (!toAccountNumber || !amount || amount <= 0) {
+    // Clean and validate inputs
+    const toAccountNumber = String(rawToAccountNumber || "").trim();
+    const amount = parseFloat(rawAmount);
+
+    // Input validation - FIXED: Proper 0 amount check
+    if (!toAccountNumber || rawAmount === undefined || rawAmount === null || amount <= 0 || isNaN(amount)) {
         pendingRequests.delete(requestKey);
-        return res.status(400).json({ message: "Invalid transfer details" });
+        return res.status(400).json({ message: "Invalid transfer details. Amount must be a positive number." });
     }
 
     const amountRegex = /^\d+(\.\d{1,2})?$/;
     const toAccountNumberRegex = /^\d{8,12}$/;
 
-    if (!amountRegex.test(amount.toString())) {
+    // FIXED: Better amount validation
+    if (!amountRegex.test(rawAmount.toString()) || amount <= 0) {
         pendingRequests.delete(requestKey);
-        return res.status(400).json({ message: "Amount must be a positive number" });
+        return res.status(400).json({ message: "Amount must be a positive number with up to 2 decimal places." });
     }
 
     if (!toAccountNumberRegex.test(toAccountNumber)) {
         pendingRequests.delete(requestKey);
-        return res.status(400).json({ message: "Account number must be 8–12 digits." });
+        return res.status(400).json({ message: "Recipient account number must be 8–12 digits." });
     }
 
-    // Prevent transferring to self
+    // FIXED: Prevent transferring to self with proper error message
     if (fromAccountNumber === toAccountNumber) {
         pendingRequests.delete(requestKey);
         return res.status(400).json({ message: "Cannot transfer to your own account" });
@@ -233,21 +238,21 @@ router.post("/transfer", limiter, checkauth, async (req, res) => {
                 throw new Error("Recipient account not found");
             }
 
-            // Check balance
-            if ((sender.balance || 0) < parseFloat(amount)) {
+            // Check balance - FIXED: Handle very small amounts
+            if ((sender.balance || 0) < amount) {
                 throw new Error("Insufficient funds");
             }
 
             // Update balances atomically
             await collection.updateOne(
                 { accountNumber: fromAccountNumber },
-                { $inc: { balance: -parseFloat(amount) } },
+                { $inc: { balance: -amount } },
                 { session }
             );
             
             await collection.updateOne(
                 { accountNumber: toAccountNumber },
-                { $inc: { balance: parseFloat(amount) } },
+                { $inc: { balance: amount } },
                 { session }
             );
 
@@ -256,7 +261,7 @@ router.post("/transfer", limiter, checkauth, async (req, res) => {
             await transfers.insertOne({
                 from: fromAccountNumber,
                 to: toAccountNumber,
-                amount: parseFloat(amount),
+                amount: amount,
                 date: new Date(),
                 type: "transfer"
             }, { session });
@@ -265,7 +270,7 @@ router.post("/transfer", limiter, checkauth, async (req, res) => {
         // Success - send response ONCE
         res.status(200).json({ 
             message: "Transfer successful",
-            amount: parseFloat(amount),
+            amount: amount,
             toAccount: toAccountNumber
         });
 
@@ -289,16 +294,19 @@ router.post("/transfer", limiter, checkauth, async (req, res) => {
 });
 
 router.post("/add-funds", limiter, checkauth, async (req, res) => {
-    const { amount } = req.body;
+    const { amount: rawAmount } = req.body;
     const accountNumber = req.user.accountNumber;
 
-    if (!amount || amount <= 0) {
-        return res.status(400).json({ message: "Invalid amount" });
+    const amount = parseFloat(rawAmount);
+
+    // FIXED: Better validation for add-funds too
+    if (rawAmount === undefined || rawAmount === null || amount <= 0 || isNaN(amount)) {
+        return res.status(400).json({ message: "Invalid amount. Amount must be a positive number." });
     }
 
     const amountRegex = /^\d+(\.\d{1,2})?$/;
-    if (!amountRegex.test(amount.toString())) {
-        return res.status(400).json({ message: "Amount must be a positive number" });
+    if (!amountRegex.test(rawAmount.toString()) || amount <= 0) {
+        return res.status(400).json({ message: "Amount must be a positive number with up to 2 decimal places." });
     }
 
     const session = db.client.startSession();
@@ -310,7 +318,7 @@ router.post("/add-funds", limiter, checkauth, async (req, res) => {
             // Update balance
             const result = await collection.updateOne(
                 { accountNumber },
-                { $inc: { balance: parseFloat(amount) } },
+                { $inc: { balance: amount } },
                 { session }
             );
 
@@ -323,7 +331,7 @@ router.post("/add-funds", limiter, checkauth, async (req, res) => {
             await transfers.insertOne({
                 from: "SYSTEM",
                 to: accountNumber,
-                amount: parseFloat(amount),
+                amount: amount,
                 date: new Date(),
                 type: "deposit"
             }, { session });
@@ -331,7 +339,7 @@ router.post("/add-funds", limiter, checkauth, async (req, res) => {
 
         res.status(200).json({ 
             message: "Funds added successfully",
-            amount: parseFloat(amount)
+            amount: amount
         });
 
     } catch (error) {

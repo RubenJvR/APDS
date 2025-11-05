@@ -1,4 +1,3 @@
-// src/components/login.js
 import { useState } from "react";
 import { login } from "../api";
 import { useNavigate } from "react-router-dom";
