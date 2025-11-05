@@ -1,4 +1,3 @@
-// src/api/index.js - FIXED VERSION
 const API_BASE_URL = 'http://localhost:3001';
 
 // Request tracking to prevent duplicates
@@ -8,7 +7,7 @@ function getRequestKey(endpoint, body) {
   return `${endpoint}-${JSON.stringify(body)}`;
 }
 
-// Enhanced fetch wrapper
+// Enhanced fetch wrapper - FIXED error handling
 async function fetchAPI(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   const requestKey = getRequestKey(endpoint, options.body);
@@ -38,29 +37,23 @@ async function fetchAPI(endpoint, options = {}) {
     
     const response = await fetch(url, config);
     
-    // Handle authentication errors
-    if (response.status === 401) {
-      throw new Error('Please login to continue');
-    }
+    const data = await response.json().catch(() => ({}));
     
+    // FIXED: Handle non-200 responses without throwing uncaught errors
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Request failed with status ${response.status}`);
+      // Return a proper error object that the component can handle
+      throw new Error(data.message || `Request failed with status ${response.status}`);
     }
     
-    const data = await response.json();
     console.log(`✅ API Success: ${url}`, data);
     return data;
     
   } catch (error) {
     console.error(`❌ API Error: ${url}`, error.message);
     
-    // Provide more specific error messages
-    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-      throw new Error('Cannot connect to server. Please check if the backend is running.');
-    }
-    
+    // FIXED: Re-throw the error so components can catch it properly
     throw error;
+    
   } finally {
     pendingRequests.delete(requestKey);
   }

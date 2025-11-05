@@ -1,4 +1,3 @@
-// src/components/home.js - SIMPLE VERSION
 import { useEffect, useState } from "react";
 import { testConnection, getBalance } from "../api";
 
