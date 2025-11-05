@@ -23,15 +23,42 @@ export default function Transfer() {
     setIsSubmitting(true);
     setMessage("");
 
+
+    const accRegex = /^\d{8,12}$/;
+    if(!accRegex.test(form.toAccountNumber)) {
+      setMessage("Invalid account number format");
+      setIsSubmitting(false);
+      return;
+    }
+    if(!form.amount || Number(form.amount) <= 0) {
+      setMessage("Amount must be a positive number");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const result = await transferFunds(form.toAccountNumber, form.amount);
-      setMessage(result.message);
-      if (result.message === "Transfer successful") {
-        setForm({ toAccountNumber: "", amount: "" });
+      // reflect backend responses
+      if (res.status === 401) {
+        setMessage("Session invalid or suspicious activity — action blocked (401).");
+        setIsSubmitting(false);
+        return;
       }
-    } catch (error) {
-      // FIXED: Properly handle error messages from API
-      setMessage(error.message || "Transfer failed. Please try again.");
+      if (res.status === 429) {
+        setMessage("Too many requests — rate limit reached (429).");
+        setIsSubmitting(false);
+        return;
+      }
+      if (!res.ok) {
+        setMessage(res.body?.message || `Transfer failed (${res.status})`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      setMessage(res.body?.message || "Transfer successful");
+      setForm({ toAccountNumber: "", amount: "" });
+    } catch (err) {
+      setMessage("Network error: " + (err.message || err));
     } finally {
       setIsSubmitting(false);
     }

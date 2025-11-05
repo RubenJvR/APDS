@@ -1,4 +1,6 @@
 import { useState } from "react";
+import React, {useState} from "react";
+import { apiPost } from "../api";
 import { login } from "../api";
 import { useNavigate } from "react-router-dom";
 
@@ -23,17 +25,42 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("Logging in...");
+
+    const nameRegex = /^\w{3,15}$/;
+    const accRegex = /^\d{8,12}$/;
+    const passRegex =/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+    if (!nameRegex.test(form.name)) {
+      setMessage("Invalid username format");
+      return;
+    }
+    if (!accRegex.test(form.accountNumber)) {
+      setMessage("Invalid account number format");
+      return;
+    }
+    if (!passRegex.test(form.password)) {
+      setMessage("Password must be at least 8 characters long and include uppercase, lowercase letters, and a number");
+      return;
+    }
+    
     
     try {
-      const result = await login(form);
-      setMessage(result.message);
-      if (result.message === "Login successful") {
-        setTimeout(() => navigate("/"), 1000);
+      if (res.status === 200 && res.ok) {
+        setMessage(res.body?.message || "Login successful");
+        // Clear sensitive field
+        setForm({ ...form, password: "" });
+        setTimeout(() => navigate("/"), 900);
+      } else if (res.status === 401) {
+        setMessage(res.body?.message || "Authentication failed (401)");
+      } else if (res.status === 429) {
+        setMessage(res.body?.message || "Too many attempts — try later (429)");
+      } else {
+        setMessage(res.body?.message || `Login failed (${res.status})`);
       }
     } catch (error) {
-      setMessage(error.message || "Login failed");
+      setMessage("Network/CORS error: " + (error.message || error));
     }
-  }
+  };
 
   return (
     <div className="container mt-4">

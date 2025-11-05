@@ -9,11 +9,13 @@ import AddFunds from './components/addFunds';
 import Transfer from './components/transfer'; 
 import Transfers from './components/transfers';
 import Home from './components/home';
+import SecurityStatus from './components/SecurityStatus';
 
 function App() {
   return (
     <Router>
       <div className="App">
+        <SecurityStatus />
         <Navbar />
         <div className="main-content">
           <Routes>

@@ -13,7 +13,7 @@ export default function Transfers() {
         setLoading(true);
         setError("");
         
-        // FIX 1: Use port 3001 instead of 3000
+       
         const [transfersRes, balanceRes] = await Promise.all([
           fetch("http://localhost:3001/user/transfers", { credentials: "include" }),
           fetch("http://localhost:3001/user/balance", { credentials: "include" }),
@@ -42,7 +42,7 @@ export default function Transfers() {
     fetchData();
   }, []);
 
-  // FIX 2: Safe number formatting
+  
   const formatAmount = (amount) => {
     if (amount === undefined || amount === null) return '0.00';
     return parseFloat(amount).toFixed(2);
