@@ -267,3 +267,64 @@ form button:hover {
     text-align: center;
   }
 }
+
+/* Admin Panel Styles */
+.admin-panel {
+  background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 0 18px rgba(212, 175, 55, 0.18);
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  color: #d4af37;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: #c0c0c0;
+  font-weight: 500;
+}
+
+small.text-muted {
+  display: block;
+  margin-top: 0.35rem;
+  color: #9a9a9a;
+  font-size: 0.85rem;
+}
+
+/* primary button that matches the app theme */
+.primary-btn {
+  display: inline-block;
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  background-color: #d4af37;
+  color: #0f0f0f;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.primary-btn:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+/* Ensure table uses the app table styles */
+.table th, .table td {
+  padding: 0.9rem 1rem;
+  text-align: left;
+}
+
+/* error text for form hints */
+.error-text {
+  color: #ff6b6b;
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+}
