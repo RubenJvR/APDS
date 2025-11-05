@@ -1,3 +1,7 @@
+if (window.top !== window.self) {
+  window.top.location = window.self.location;
+}
+
 import React   from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
