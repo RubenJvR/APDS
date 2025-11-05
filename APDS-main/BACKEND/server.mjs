@@ -10,6 +10,7 @@ import helmet from "helmet";
 import mongoSanitize from "express-mongo-sanitize";
 import cookieParser from "cookie-parser";
 import users from "./routes/user.mjs";
+import admin from "./routes/admin.mjs"; 
 
 const HTTPS_PORT = process.env.HTTPS_PORT || 3000;
 const HTTP_PORT  = process.env.HTTP_PORT  || 3001;
@@ -57,14 +58,15 @@ app.use((req, res, next) => {
 
 // Mount routes
 app.use("/user", users);
-
+app.use("/admin", admin);
 // Test routes
 app.get("/", (req, res) => {
   res.json({ 
     message: "HTTPS Server is running successfully!",
     endpoints: {
       test: "/test-db",
-      user: "/user/*"
+      user: "/user/*",
+      admin: "/admin/*"
     }
   });
 });
@@ -127,6 +129,7 @@ httpApp.use(limiter);
 
 // Mount the same routes on HTTP
 httpApp.use("/user", users);
+httpApp.use("/admin", admin);
 
 httpApp.get("/", (req, res) => {
   res.json({ 
@@ -157,6 +160,7 @@ httpServer.listen(HTTP_PORT, () => {
   console.log(`✅ HTTP API Server listening on http://localhost:${HTTP_PORT}`);
   console.log(`🔗 Test connection: http://localhost:${HTTP_PORT}/health`);
   console.log(`👤 User routes: http://localhost:${HTTP_PORT}/user/`);
+  console.log(`👑 Admin routes: http://localhost:${HTTP_PORT}/admin/`);
   console.log(`🗄️  Database test: http://localhost:${HTTP_PORT}/test-db`);
 });
 

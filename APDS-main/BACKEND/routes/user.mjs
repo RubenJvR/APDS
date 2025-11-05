@@ -138,6 +138,7 @@ router.post("/login", limiter, bruteforce.prevent, async (req, res) => {
           {
             name: user.name,
             accountNumber: user.accountNumber,
+            role: user.role,
             jti,
             ip: req.ip,
             ua: req.headers["user-agent"]
@@ -157,7 +158,8 @@ router.post("/login", limiter, bruteforce.prevent, async (req, res) => {
         res.status(200).json({
             message: "Login successful",
             name: user.name,
-            accountNumber: user.accountNumber
+            accountNumber: user.accountNumber,
+            role: user.role
         });
         
     } catch (error) {

@@ -23,8 +23,21 @@ export default function Login() {
     try {
       const result = await login(form);
       setMessage(result.message);
-      if (result.message === "Authentication successful") {
-        setTimeout(() => navigate("/"), 1000);
+      if (result.message === "Login successful") {
+
+        const userRole = result.role;
+        if (userRole === "admin"){
+
+          setMessage("Admin Login");
+          localStorage.setItem("user", JSON.stringify(result.user));
+          setTimeout(() => navigate("/admin"), 1000);
+        } else{
+          setMessage("Correct Login");
+          localStorage.setItem("user", JSON.stringify(result.user));
+          setTimeout(() => navigate("/home"), 1000);
+        }
+
+        
       }
     } catch (error) {
       setMessage(error.message || "Login failed");
