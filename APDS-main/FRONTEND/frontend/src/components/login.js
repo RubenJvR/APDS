@@ -26,27 +26,37 @@ export default function Login() {
     
     try {
       const result = await login(form);
-      setMessage(result.message);
+      console.log("Login result:", result);
+      
       if (result.message === "Login successful") {
-
-        const userRole = result.role;
-        if (userRole === "admin"){
-
-          setMessage("Admin Login");
-          localStorage.setItem("user", JSON.stringify(result.user));
+  
+        const userData = {
+          name: result.name,
+          accountNumber: result.accountNumber,
+          role: result.role
+        };
+        
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        if (result.role === "admin") {
+          localStorage.setItem('isAdmin', 'true');
+          setMessage("Admin login successful!");
           setTimeout(() => navigate("/admin"), 1000);
-        } else{
-          setMessage("Correct Login");
-          localStorage.setItem("user", JSON.stringify(result.user));
+        } else {
+          localStorage.setItem('isAdmin', 'false');
+          setMessage("Login successful!");
           setTimeout(() => navigate("/home"), 1000);
         }
-
-        
+      } else {
+        setMessage(result.message || "Login failed");
       }
     } catch (error) {
+      console.error("Login error:", error);
       setMessage(error.message || "Login failed");
     }
   }
+
+  
 
   return (
     <div className="container mt-4">
