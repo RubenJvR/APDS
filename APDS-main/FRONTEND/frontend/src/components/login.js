@@ -22,50 +22,75 @@ export default function Login() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("Logging in...");
+  e.preventDefault();
+  setMessage("Logging in...");
 
-    const nameRegex = /^\w{3,15}$/;
-    const accRegex = /^\d{8,12}$/;
-    const passRegex =/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+  // --- Input validation ---
+  const nameRegex = /^\w{3,15}$/;
+  const accRegex = /^\d{8,12}$/;
+  const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
-    if (!nameRegex.test(form.name)) {
-      setMessage("Invalid username format");
-      return;
-    }
-    if (!accRegex.test(form.accountNumber)) {
-      setMessage("Invalid account number format");
-      return;
-    }
-    if (!passRegex.test(form.password)) {
-      setMessage("Password must be at least 8 characters long and include uppercase, lowercase letters, and a number");
-      return;
-    }
+  if (!nameRegex.test(form.name)) {
+    setMessage("Invalid username format");
+    return;
+  }
+  if (!accRegex.test(form.accountNumber)) {
+    setMessage("Invalid account number format");
+    return;
+  }
+  if (!passRegex.test(form.password)) {
+    setMessage(
+      "Password must be at least 8 characters long and include uppercase, lowercase letters, and a number"
+    );
+    return;
+  }
 
-    try{
-      const result = await login(form);
+  // --- Attempt login ---
+  try {
+    const result = await login(form);
+    console.log("Login result:", result);
 
-      if (result.message == "Authentication successful") {
-        setMessage("Login Successful");
-        setForm({ ...form, password: "" }); 
+    if (result.message === "Login successful") {
+      // Save user info
+      const userData = {
+        name: result.name,
+        accountNumber: result.accountNumber,
+        role: result.role,
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
 
-        setTimeout(() => navigate("/"), 900);
+      // Clear password field
+      setForm({ ...form, password: "" });
+
+      // Admin vs regular user
+      if (result.role === "admin") {
+        localStorage.setItem("isAdmin", "true");
+        setMessage("Admin login successful!");
+        setTimeout(() => navigate("/admin"), 1000);
+      } else {
+        localStorage.setItem("isAdmin", "false");
+        setMessage("Login successful!");
+        setTimeout(() => navigate("/home"), 1000);
       }
-      else if (result.message?.includes("Too many requests")) {
+    } else if (result.message?.includes("Too many requests")) {
       setMessage("Too many attempts — rate limit triggered (429)");
-    } 
-    else if (result.message?.includes("invalid") || result.message?.includes("failed")) {
+    } else if (
+      result.message?.includes("invalid") ||
+      result.message?.includes("failed")
+    ) {
       setMessage("Authentication failed (401) / suspicious session blocked");
-    } 
-    else {
-      setMessage("Login failed");
+    } else {
+      setMessage(result.message || "Login failed");
     }
-
   } catch (error) {
+    console.error("Login error:", error);
     setMessage("Network/CORS error: " + (error.message || error));
   }
 };
+
     
+
+  
 
   return (
     <div className="container mt-4">
