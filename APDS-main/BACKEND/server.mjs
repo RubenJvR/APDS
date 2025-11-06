@@ -20,15 +20,13 @@ const app = express();
 // Enhanced CORS configuration
 app.use(cors({
   origin: [
+    "https://localhost:3002",  
+    "https://localhost:3000",  
     "http://localhost:3000",
     "http://localhost:3001", 
     "http://localhost:3002",
     "http://localhost:3003",
-    "http://localhost:3004",
-    "https://localhost:3000",
-    "https://localhost:3001",
-    "https://localhost:3002", 
-    "https://localhost:3003"
+    "http://localhost:3004"
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
