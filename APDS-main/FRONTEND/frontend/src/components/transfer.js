@@ -38,27 +38,22 @@ export default function Transfer() {
 
     try {
       const result = await transferFunds(form.toAccountNumber, form.amount);
-      // reflect backend responses
-      if (res.status === 401) {
-        setMessage("Session invalid or suspicious activity — action blocked (401).");
-        setIsSubmitting(false);
-        return;
-      }
-      if (res.status === 429) {
-        setMessage("Too many requests — rate limit reached (429).");
-        setIsSubmitting(false);
-        return;
-      }
-      if (!res.ok) {
-        setMessage(res.body?.message || `Transfer failed (${res.status})`);
-        setIsSubmitting(false);
-        return;
-      }
 
-      setMessage(res.body?.message || "Transfer successful");
-      setForm({ toAccountNumber: "", amount: "" });
-    } catch (err) {
-      setMessage("Network error: " + (err.message || err));
+      if (result.message == "Transfer successful") {
+        setMessage("Transfer successful");
+        setForm({ toAccountNumber: "", amount: "" });
+      }
+      else if (result.message?.includes("Too many requests")) {
+        setMessage("Too many transfer attempts. Temporarily blocked (429)");
+      }
+      else if (result.message?.includes("invalid") || result.message?.includes("failed")) {
+        setMessage("Transfer blocked. Invalid or suspicious (401)");
+      }
+      else {
+        setMessage("Transfer failed");
+      }
+    } catch (error) {
+      setMessage("Network/CORS error: " + (error.message || error));
     } finally {
       setIsSubmitting(false);
     }

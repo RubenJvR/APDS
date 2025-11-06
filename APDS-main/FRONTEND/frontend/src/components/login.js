@@ -1,4 +1,3 @@
-import { useState } from "react";
 import React, {useState} from "react";
 import { apiPost } from "../api";
 import { login } from "../api";
@@ -42,25 +41,31 @@ export default function Login() {
       setMessage("Password must be at least 8 characters long and include uppercase, lowercase letters, and a number");
       return;
     }
-    
-    
-    try {
-      if (res.status === 200 && res.ok) {
-        setMessage(res.body?.message || "Login successful");
-        // Clear sensitive field
-        setForm({ ...form, password: "" });
+
+    try{
+      const result = await login(form);
+
+      if (result.message == "Authentication successful") {
+        setMessage("Login Successful");
+        setForm({ ...form, password: "" }); 
+
         setTimeout(() => navigate("/"), 900);
-      } else if (res.status === 401) {
-        setMessage(res.body?.message || "Authentication failed (401)");
-      } else if (res.status === 429) {
-        setMessage(res.body?.message || "Too many attempts — try later (429)");
-      } else {
-        setMessage(res.body?.message || `Login failed (${res.status})`);
       }
-    } catch (error) {
-      setMessage("Network/CORS error: " + (error.message || error));
+      else if (result.message?.includes("Too many requests")) {
+      setMessage("Too many attempts — rate limit triggered (429)");
+    } 
+    else if (result.message?.includes("invalid") || result.message?.includes("failed")) {
+      setMessage("Authentication failed (401) / suspicious session blocked");
+    } 
+    else {
+      setMessage("Login failed");
     }
-  };
+
+  } catch (error) {
+    setMessage("Network/CORS error: " + (error.message || error));
+  }
+};
+    
 
   return (
     <div className="container mt-4">
