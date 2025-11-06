@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = 'http://localhost:3000';
 
 // Request tracking to prevent duplicates
 const pendingRequests = new Map();
@@ -39,7 +39,7 @@ async function fetchAPI(endpoint, options = {}) {
     
     const data = await response.json().catch(() => ({}));
     
-    // FIXED: Handle non-200 responses without throwing uncaught errors
+    
     if (!response.ok) {
       // Return a proper error object that the component can handle
       throw new Error(data.message || `Request failed with status ${response.status}`);
@@ -51,7 +51,7 @@ async function fetchAPI(endpoint, options = {}) {
   } catch (error) {
     console.error(`❌ API Error: ${url}`, error.message);
     
-    // FIXED: Re-throw the error so components can catch it properly
+    
     throw error;
     
   } finally {

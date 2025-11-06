@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, {useState} from "react";
+import { apiPost } from "../api";
 import { login } from "../api";
 import { useNavigate } from "react-router-dom";
 
@@ -21,40 +22,73 @@ export default function Login() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("Logging in...");
-    
-    try {
-      const result = await login(form);
-      console.log("Login result:", result);
-      
-      if (result.message === "Login successful") {
-  
-        const userData = {
-          name: result.name,
-          accountNumber: result.accountNumber,
-          role: result.role
-        };
-        
-        localStorage.setItem('user', JSON.stringify(userData));
-        
-        if (result.role === "admin") {
-          localStorage.setItem('isAdmin', 'true');
-          setMessage("Admin login successful!");
-          setTimeout(() => navigate("/admin"), 1000);
-        } else {
-          localStorage.setItem('isAdmin', 'false');
-          setMessage("Login successful!");
-          setTimeout(() => navigate("/home"), 1000);
-        }
-      } else {
-        setMessage(result.message || "Login failed");
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      setMessage(error.message || "Login failed");
-    }
+  e.preventDefault();
+  setMessage("Logging in...");
+
+  // --- Input validation ---
+  const nameRegex = /^\w{3,15}$/;
+  const accRegex = /^\d{8,12}$/;
+  const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+  if (!nameRegex.test(form.name)) {
+    setMessage("Invalid username format");
+    return;
   }
+  if (!accRegex.test(form.accountNumber)) {
+    setMessage("Invalid account number format");
+    return;
+  }
+  if (!passRegex.test(form.password)) {
+    setMessage(
+      "Password must be at least 8 characters long and include uppercase, lowercase letters, and a number"
+    );
+    return;
+  }
+
+  // --- Attempt login ---
+  try {
+    const result = await login(form);
+    console.log("Login result:", result);
+
+    if (result.message === "Login successful") {
+      // Save user info
+      const userData = {
+        name: result.name,
+        accountNumber: result.accountNumber,
+        role: result.role,
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
+
+      // Clear password field
+      setForm({ ...form, password: "" });
+
+      // Admin vs regular user
+      if (result.role === "admin") {
+        localStorage.setItem("isAdmin", "true");
+        setMessage("Admin login successful!");
+        setTimeout(() => navigate("/admin"), 1000);
+      } else {
+        localStorage.setItem("isAdmin", "false");
+        setMessage("Login successful!");
+        setTimeout(() => navigate("/home"), 1000);
+      }
+    } else if (result.message?.includes("Too many requests")) {
+      setMessage("Too many attempts — rate limit triggered (429)");
+    } else if (
+      result.message?.includes("invalid") ||
+      result.message?.includes("failed")
+    ) {
+      setMessage("Authentication failed (401) / suspicious session blocked");
+    } else {
+      setMessage(result.message || "Login failed");
+    }
+  } catch (error) {
+    console.error("Login error:", error);
+    setMessage("Network/CORS error: " + (error.message || error));
+  }
+};
+
+    
 
   
 

@@ -23,15 +23,37 @@ export default function Transfer() {
     setIsSubmitting(true);
     setMessage("");
 
+
+    const accRegex = /^\d{8,12}$/;
+    if(!accRegex.test(form.toAccountNumber)) {
+      setMessage("Invalid account number format");
+      setIsSubmitting(false);
+      return;
+    }
+    if(!form.amount || Number(form.amount) <= 0) {
+      setMessage("Amount must be a positive number");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const result = await transferFunds(form.toAccountNumber, form.amount);
-      setMessage(result.message);
-      if (result.message === "Transfer successful") {
+
+      if (result.message == "Transfer successful") {
+        setMessage("Transfer successful");
         setForm({ toAccountNumber: "", amount: "" });
       }
+      else if (result.message?.includes("Too many requests")) {
+        setMessage("Too many transfer attempts. Temporarily blocked (429)");
+      }
+      else if (result.message?.includes("invalid") || result.message?.includes("failed")) {
+        setMessage("Transfer blocked. Invalid or suspicious (401)");
+      }
+      else {
+        setMessage("Transfer failed");
+      }
     } catch (error) {
-      // FIXED: Properly handle error messages from API
-      setMessage(error.message || "Transfer failed. Please try again.");
+      setMessage("Network/CORS error: " + (error.message || error));
     } finally {
       setIsSubmitting(false);
     }

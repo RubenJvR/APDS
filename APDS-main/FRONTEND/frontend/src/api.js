@@ -101,3 +101,28 @@ export default {
   addFunds,
   checkAuth
 };
+
+//ensures HTTPS and sends cookies
+
+async function safeFetch(path, options = {}) {
+  const url = '${BASE}${PATH}';
+  const opts = {
+    credentials: "include", //send httpOnly cookies
+    headers: {"Content-Type": "application/json"}
+    , ...options,
+  };
+
+  const res = await fetch(url, opts);
+  return res;
+}
+
+export async function apiPost(path, body) {
+  return safeFetch(path, {
+    method: "POST",
+  });
+}
+
+export async function apiGet(path) {
+  return safeFetch(path, {method: "GET" });
+}
+
