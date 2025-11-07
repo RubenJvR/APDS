@@ -10,12 +10,14 @@ demo video:
 https://youtu.be/QuYmV2gTeYo
 
 To run the system open the folder \APDS-main\BACKEND> and enter: npm run start 
+It may request the user to install express-mongo-sanitize, to do so run: npm install express-mongo-sanitize
 this will start the backend server
 
 open the folder \APDS-main\FRONTEND\frontend in a different terminal and enter: npm start
+It may not recognize react therefore the user would have to run the following: npm install
 this will launch the frontend. 
 
-
+The browser may warn the user about the application, they will have to click on show more and proceed to the website
 
 Features list:
 
