@@ -150,8 +150,8 @@ router.post("/login", limiter, bruteforce.prevent, async (req, res) => {
         // Set cookie - modified for development
         res.cookie("session", token, {
             httpOnly: true, 
-            secure: false, // false for HTTP development
-            sameSite: "lax", // lax for development
+            secure: true, 
+            sameSite: "none", 
             maxAge: 30 * 60 * 1000 // 30 mins
         });
         
@@ -422,8 +422,8 @@ router.get("/balance", limiter, checkauth, async (req, res) => {
 router.post("/logout", (req, res) => {
   res.clearCookie("session", {
     httpOnly: true,
-    secure: false,
-    sameSite: "lax"
+    secure: true,
+    sameSite: "none"
   });
   res.json({ message: "Logged out successfully" });
 });

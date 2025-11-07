@@ -37,11 +37,11 @@ router.post("/add-user", limiter, checkauth, async (req, res) => {
     const accountNumber = String(rawAccountNumber).trim();
     
     // Validation regex
-    const fullNameRegex = /^[A-Za-z ]{2,}$/;
-    const idNumberRegex = /^\d{9}$/;
-    const accountNumberRegex = /^\d{8,12}$/;
-    const nameRegex = /^\w{3,15}$/;
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
+     const fullNameRegex = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
+     const idNumberRegex = /^\d{9}$/;
+     const accountNumberRegex = /^\d{8,12}$/;
+     const nameRegex = /^\w{3,15}$/;
+     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
 
     // Validate inputs
     if (!fullNameRegex.test(fullName)) {

@@ -24,13 +24,13 @@ export default function Navbar() {
    const handleLogout = async () => {
     try {
       // Call logout API to clear cookie
-      await fetch('http://localhost:3001/user/logout', {
+          await fetch('https://localhost:3000/user/logout', {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         }
-      });
+    });
     } catch (error) {
       console.error('Logout API error:', error);
     } finally {

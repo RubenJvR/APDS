@@ -25,18 +25,17 @@ const Admin = () => {
     }, []);
 
     const fetchUsers = async () => {
-        try {
-            const response = await axios.get('http://localhost:3001/admin/users', {
-                withCredentials: true
-            });
-            const list = response.data?.users || response.data || [];
-            setUsers(list);
-        } catch (error) {
-            toast.error('Failed to fetch users');
-            console.error('Error fetching users:', error);
-        }
-    };
-
+    try {
+        const response = await axios.get('https://localhost:3000/admin/users', {
+            withCredentials: true
+        });
+        const list = response.data?.users || response.data || [];
+        setUsers(list);
+    } catch (error) {
+        toast.error('Failed to fetch users');
+        console.error('Error fetching users:', error);
+    }
+};
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setNewUser(prev => ({
@@ -50,7 +49,7 @@ const Admin = () => {
 
     const validationRules = {
         fullName: {
-            pattern: /^[A-Za-z ]{2,}$/,
+            pattern: /^[A-Za-z]+(?: [A-Za-z]+)*$/,
             message: "Full name must only contain letters and spaces"
         },
         idNumber: {
@@ -101,7 +100,7 @@ const Admin = () => {
         setErrors({});
         setGeneralError('');
         try {
-            await axios.post('http://localhost:3001/admin/add-user', newUser, {
+            await axios.post('https://localhost:3000/admin/add-user', newUser, {
                 withCredentials: true
             });
             toast.success('User added successfully');
