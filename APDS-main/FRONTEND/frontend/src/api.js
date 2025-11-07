@@ -131,6 +131,10 @@ export async function checkAuth() {
   }
 }
 
+export const getUserTransactions = async (accountNumber) => {
+  return fetchAPI(`/admin/transactions/${accountNumber}`);
+};
+
 export default {
   testConnection,
   testDB,

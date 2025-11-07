@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import AdminTransfers from './AdminTransfers';
 
 const Admin = () => {
     const [users, setUsers] = useState([]);
@@ -14,6 +15,7 @@ const Admin = () => {
         initialBalance: 0
     });
     const [loading, setLoading] = useState(false);
+    const [showTransfers, setShowTransfers] = useState(false);
 
     // new: validation error state
     const [errors, setErrors] = useState({});
@@ -238,31 +240,47 @@ const Admin = () => {
             </section>
 
             <section className="admin-panel" style={{marginTop:'1.5rem'}}>
-                <h2 className="section-title">User List</h2>
-                <div className="overflow-x-auto">
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>Full Name</th>
-                                <th>Username</th>
-                                <th>Account Number</th>
-                                <th>Balance</th>
-                                <th>Created At</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {users.map((user, index) => (
-                                <tr key={index}>
-                                    <td>{user.fullName}</td>
-                                    <td>{user.name}</td>
-                                    <td>{user.accountNumber}</td>
-                                    <td className="amount">${Number(user.balance || 0).toFixed(2)}</td>
-                                    <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem'}}>
+                    <h2 className="section-title" style={{margin:0}}>
+                        {showTransfers ? 'Pending Transfers' : 'User List'}
+                    </h2>
+                    <button 
+                        className="primary-btn" 
+                        onClick={() => setShowTransfers(!showTransfers)}
+                        style={{marginLeft:'auto'}}
+                    >
+                        {showTransfers ? 'View Users' : 'View Pending Transfers'}
+                    </button>
                 </div>
+
+                {showTransfers ? (
+                    <AdminTransfers />
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Full Name</th>
+                                    <th>Username</th>
+                                    <th>Account Number</th>
+                                    <th>Balance</th>
+                                    <th>Created At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {users.map((user, index) => (
+                                    <tr key={index}>
+                                        <td>{user.fullName}</td>
+                                        <td>{user.name}</td>
+                                        <td>{user.accountNumber}</td>
+                                        <td className="amount">${Number(user.balance || 0).toFixed(2)}</td>
+                                        <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </section>
         </div>
     );
