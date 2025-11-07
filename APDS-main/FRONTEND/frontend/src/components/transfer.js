@@ -139,7 +139,7 @@ export default function Transfer() {
                   <div>
                     <strong>To: {transfer.to}</strong>
                     <br />
-                    Amount: ${transfer.amount}
+                    Amount: R{transfer.amount}
                     <br />
                     <small className="text-muted">
                       Requested: {new Date(transfer.date).toLocaleString()}

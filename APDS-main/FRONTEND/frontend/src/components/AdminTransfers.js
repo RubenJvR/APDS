@@ -120,7 +120,7 @@ const AdminTransfers = () => {
                                 </span>
                             </td>
                             <td className="amount">
-                                ${Number(transfer.amount || 0).toFixed(2)}
+                                R{Number(transfer.amount || 0).toFixed(2)}
                             </td>
                             <td>
                                 <span style={{

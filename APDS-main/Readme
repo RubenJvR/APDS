@@ -34,6 +34,9 @@ Features list:
 -- Add Funds
         users can also add funds on the Add Funds page
 
+-- Admin pages
+        Admins can approve or disprove pending payments and see a list of all users, these pages are only visible to admins
+
 All traffic is served over SSL
 And https connections are over both the front and backend
 The system uses Regex to process all user inputs
