@@ -14,10 +14,9 @@ const Admin = () => {
         initialBalance: 0
     });
     const [loading, setLoading] = useState(false);
-
-    // new: validation error state
     const [errors, setErrors] = useState({});
     const [generalError, setGeneralError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
     const formRef = useRef(null);
 
     useEffect(() => {
@@ -25,26 +24,27 @@ const Admin = () => {
     }, []);
 
     const fetchUsers = async () => {
-    try {
-        const response = await axios.get('https://localhost:3000/admin/users', {
-            withCredentials: true
-        });
-        const list = response.data?.users || response.data || [];
-        setUsers(list);
-    } catch (error) {
-        toast.error('Failed to fetch users');
-        console.error('Error fetching users:', error);
-    }
-};
+        try {
+            const response = await axios.get('https://localhost:3000/admin/users', {
+                withCredentials: true
+            });
+            const list = response.data?.users || response.data || [];
+            setUsers(list);
+        } catch (error) {
+            toast.error('Failed to fetch users');
+            console.error('Error fetching users:', error);
+        }
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setNewUser(prev => ({
             ...prev,
             [name]: value
         }));
-        // clear field-specific error and general error when user types
         setErrors(prev => ({ ...prev, [name]: '' }));
         setGeneralError('');
+        setSuccessMessage('');
     };
 
     const validationRules = {
@@ -79,7 +79,6 @@ const Admin = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // client-side validation, collect errors
         const newErrors = {};
         Object.entries(validationRules).forEach(([field, rule]) => {
             const val = newUser[field];
@@ -91,7 +90,6 @@ const Admin = () => {
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             setGeneralError('Please fix the highlighted fields.');
-            // scroll to form for visibility
             formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             return;
         }
@@ -99,11 +97,26 @@ const Admin = () => {
         setLoading(true);
         setErrors({});
         setGeneralError('');
+        setSuccessMessage('');
+        
         try {
             await axios.post('https://localhost:3000/admin/add-user', newUser, {
                 withCredentials: true
             });
-            toast.success('User added successfully');
+            
+            // Enhanced success feedback
+            toast.success('User added successfully', {
+                position: "top-center",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                theme: "colored"
+            });
+            
+            setSuccessMessage('User added successfully! The form has been reset and you can add another user.');
+            
             fetchUsers();
             setNewUser({
                 fullName: '',
@@ -113,11 +126,16 @@ const Admin = () => {
                 password: '',
                 initialBalance: 0
             });
+
+            // Auto-clear success message after 8 seconds
+            setTimeout(() => {
+                setSuccessMessage('');
+            }, 8000);
+
         } catch (error) {
             const msg = error.response?.data?.message || 'Failed to add user';
             toast.error(msg);
 
-            // Map backend message to field where possible
             const lower = String(msg).toLowerCase();
             const backendErrors = {};
             if (lower.includes('full name') || lower.includes('full name must')) {
@@ -131,7 +149,6 @@ const Admin = () => {
             } else if (lower.includes('password')) {
                 backendErrors.password = msg;
             } else if (error.response?.status === 409) {
-                // username/account conflict
                 backendErrors.name = msg;
                 backendErrors.accountNumber = msg;
             } else {
@@ -152,17 +169,26 @@ const Admin = () => {
 
     return (
         <div className="container" ref={formRef}>
-            <h1 style={{textAlign:'center', marginBottom:'1rem'}}>Admin Dashboard</h1>
+            <h1 className="text-center mb-4" style={{ color: "#d4af37" }}>Admin Dashboard</h1>
 
             <section className="admin-panel">
                 <h2 className="section-title">Add New User</h2>
 
-                {generalError && (<div className="message error" role="alert">{generalError}</div>)}
+                {generalError && (
+                    <div className="message error" role="alert">
+                        {generalError}
+                    </div>
+                )}
+
+                {successMessage && (
+                    <div className="message success" role="alert">
+                        {successMessage}
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label>Full Name:</label>
-                        {/* moved hint above the input */}
                         <small className={errors.fullName ? 'error-text' : 'text-muted'}>
                             {errors.fullName || validationRules.fullName.message}
                         </small>
@@ -171,7 +197,7 @@ const Admin = () => {
                             name="fullName"
                             value={newUser.fullName}
                             onChange={handleInputChange}
-                            className="form-control"
+                            className={`form-control ${errors.fullName ? 'error-border' : ''}`}
                         />
                     </div>
 
@@ -185,7 +211,7 @@ const Admin = () => {
                             name="idNumber"
                             value={newUser.idNumber}
                             onChange={handleInputChange}
-                            className="form-control"
+                            className={`form-control ${errors.idNumber ? 'error-border' : ''}`}
                         />
                     </div>
 
@@ -199,7 +225,7 @@ const Admin = () => {
                             name="accountNumber"
                             value={newUser.accountNumber}
                             onChange={handleInputChange}
-                            className="form-control"
+                            className={`form-control ${errors.accountNumber ? 'error-border' : ''}`}
                         />
                     </div>
 
@@ -213,7 +239,7 @@ const Admin = () => {
                             name="name"
                             value={newUser.name}
                             onChange={handleInputChange}
-                            className="form-control"
+                            className={`form-control ${errors.name ? 'error-border' : ''}`}
                         />
                     </div>
 
@@ -227,12 +253,20 @@ const Admin = () => {
                             name="password"
                             value={newUser.password}
                             onChange={handleInputChange}
-                            className="form-control"
+                            className={`form-control ${errors.password ? 'error-border' : ''}`}
                         />
                     </div>
 
-                    <button type="submit" className="primary-btn" disabled={loading}>
-                        {loading ? 'Adding…' : 'Add User'}
+                    <button 
+                        type="submit" 
+                        className="primary-btn" 
+                        disabled={loading}
+                        style={{
+                            opacity: loading ? 0.6 : 1,
+                            cursor: loading ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        {loading ? 'Adding User...' : 'Add User'}
                     </button>
                 </form>
             </section>
@@ -264,6 +298,52 @@ const Admin = () => {
                     </table>
                 </div>
             </section>
+
+            <style jsx>{`
+                .message.success {
+                    background: #d4edda;
+                    color: #155724;
+                    border: 1px solid #c3e6cb;
+                    padding: 12px;
+                    border-radius: 4px;
+                    margin-bottom: 16px;
+                    font-weight: bold;
+                }
+                
+                .message.error {
+                    background: #f8d7da;
+                    color: #721c24;
+                    border: 1px solid #f5c6cb;
+                    padding: 12px;
+                    border-radius: 4px;
+                    margin-bottom: 16px;
+                }
+                
+                .error-text {
+                    color: #dc3545;
+                    font-weight: bold;
+                }
+                
+                .error-border {
+                    border-color: #dc3545;
+                    border-width: 2px;
+                }
+                
+                @keyframes slideIn {
+                    from {
+                        transform: translateY(-10px);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+                
+                .message {
+                    animation: slideIn 0.3s ease-out;
+                }
+            `}</style>
         </div>
     );
 };
