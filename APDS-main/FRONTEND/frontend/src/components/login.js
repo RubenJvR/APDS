@@ -154,24 +154,7 @@ export default function Login() {
             onChange={handleChange}
             required 
           />
-          <button
-            type="button"
-            className="btn btn-outline-secondary position-absolute"
-            style={{
-              right: "5px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              border: "none",
-              background: "transparent"
-            }}
-            onClick={togglePasswordVisibility}
-          >
-            {showPassword ? (
-              <i className="bi bi-eye-slash"></i> // Hide icon
-            ) : (
-              <i className="bi bi-eye"></i> // Show icon
-            )}
-          </button>
+          
         </div>
         
         <button type="submit" className="btn btn-primary w-100" style={{ backgroundColor: "#d4af37", borderColor: "#d4af37" }}>
