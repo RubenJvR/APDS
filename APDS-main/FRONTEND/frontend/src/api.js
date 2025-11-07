@@ -83,7 +83,9 @@ export async function addFunds(amount) {
     body: { amount: parseFloat(amount) }
   });
 }
-
+export async function checkAccountExists(accountNumber) {
+  return fetchAPI(`/user/check-account/${accountNumber}`);
+}
 // Admin functions
 export async function getPendingTransfers() {
   return fetchAPI('/admin/pending-transfers'); 

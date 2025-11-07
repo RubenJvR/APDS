@@ -386,7 +386,42 @@ router.get("/balance", limiter, checkauth, async (req, res) => {
     }
   }
 });
+router.get("/check-account/:accountNumber", checkauth, async (req, res) => {
+  try {
+    const { accountNumber } = req.params;
+    
+    if (!accountNumber || !/^\d{8,12}$/.test(accountNumber)) {
+      return res.status(400).json({ 
+        exists: false, 
+        message: "Invalid account number format" 
+      });
+    }
 
+    const collection = await db.collection("users");
+    const account = await collection.findOne({ 
+      accountNumber: accountNumber 
+    });
+
+    if (account) {
+      return res.json({ 
+        exists: true,
+        accountName: account.name,
+        fullName: account.fullName
+      });
+    } else {
+      return res.json({ 
+        exists: false,
+        message: "Account not found" 
+      });
+    }
+  } catch (error) {
+    console.error("Account check error:", error);
+    res.status(500).json({ 
+      exists: false, 
+      message: "Error checking account" 
+    });
+  }
+});
 // Logout route
 router.post("/logout", (req, res) => {
   res.clearCookie("session", {
