@@ -29,7 +29,85 @@ body {
   margin-right: 10px;
   transition: transform 0.3s ease;
 }
+.badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
 
+.badge-success {
+  background-color: #28a745;
+  color: white;
+}
+
+.badge-warning {
+  background-color: #ffc107;
+  color: black;
+}
+
+.badge-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.badge-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+/* Table row colors */
+.table-warning {
+  background-color: #fff3cd !important;
+}
+
+.table-danger {
+  background-color: #f8d7da !important;
+}
+
+/* Overview cards */
+.overview-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.overview-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-align: center;
+  border: 1px solid #e9ecef;
+}
+
+.overview-card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: #666;
+  font-weight: 600;
+}
+
+.overview-card p {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.gold-text {
+  color: #d4af37;
+}
+
+.silver-text {
+  color: #c0c0c0;
+}
+
+/* Filter toggle */
+.form-check-input:checked {
+  background-color: #d4af37;
+  border-color: #d4af37;
+}
 .nav-link {
   color: #d4af37 !important; /* gold links */
   font-weight: 500;
