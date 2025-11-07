@@ -309,7 +309,7 @@ const Admin = () => {
                                         <td>{user.fullName}</td>
                                         <td>{user.name}</td>
                                         <td>{user.accountNumber}</td>
-                                        <td className="amount">${Number(user.balance || 0).toFixed(2)}</td>
+                                        <td className="amount">R{Number(user.balance || 0).toFixed(2)}</td>
                                         <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}</td>
                                     </tr>
                                 ))}
