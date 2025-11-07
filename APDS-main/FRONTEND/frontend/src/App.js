@@ -12,6 +12,9 @@ import Home from './components/home';
 import SecurityStatus from './components/SecurityStatus';
 import Admin from './components/admin'; // Add this import
 
+import AdminTransfers from './components/AdminTransfers'; // Add this
+
+
 function App() {
   return (
     <Router>
@@ -26,7 +29,10 @@ function App() {
             <Route path="/add-funds" element={<AddFunds />} />
             <Route path="/transfer" element={<Transfer />} />
             <Route path="/transfers" element={<Transfers />} />
-            <Route path="/admin" element={<Admin />} /> {/* Add this route */}
+            <Route path="/admin" element={<Admin />} /> 
+             
+            <Route path="/admin/pending-transfers" element={<AdminTransfers />} />
+            
           </Routes>
         </div>
       </div>

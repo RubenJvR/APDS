@@ -1,4 +1,6 @@
+//login.js
 import React, {useState} from "react";
+
 import { login } from "../api";
 import { useNavigate } from "react-router-dom";
 
@@ -21,57 +23,81 @@ export default function Login() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("Logging in...");
+  e.preventDefault();
+  setMessage("Logging in...");
 
-    // Your validation and login logic here
-    const nameRegex = /^\w{3,15}$/;
-    const accRegex = /^\d{8,12}$/;
-    const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+  // Input validation with specific error messages
+  const nameRegex = /^\w{3,15}$/;
+  const accRegex = /^\d{8,12}$/;
+  const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
-    if (!nameRegex.test(form.name)) {
-      setMessage("Invalid username format");
-      return;
-    }
-    if (!accRegex.test(form.accountNumber)) {
-      setMessage("Invalid account number format");
-      return;
-    }
-    if (!passRegex.test(form.password)) {
-      setMessage("Password must be at least 8 characters long and include uppercase, lowercase letters, and a number");
-      return;
-    }
+  if (!nameRegex.test(form.name)) {
+    setMessage("Username must be 3-15 characters (letters, numbers, underscores only)");
+    return;
+  }
+  if (!accRegex.test(form.accountNumber)) {
+    setMessage("Account number must be 8-12 digits only");
+    return;
+  }
+  if (!passRegex.test(form.password)) {
+    setMessage(
+      "Password must be: 8+ characters, include uppercase, lowercase, and a number"
+    );
+    return;
+  }
 
-    try {
-      const result = await login(form);
-      console.log("Login result:", result);
+  // Attempt login
+  try {
+    const result = await login(form);
+    console.log("Login result:", result);
 
-      if (result.message === "Login successful") {
-        const userData = {
-          name: result.name,
-          accountNumber: result.accountNumber,
-          role: result.role,
-        };
-        localStorage.setItem("user", JSON.stringify(userData));
-        setForm({ ...form, password: "" });
+    if (result.message === "Login successful") {
+      // Success handling
+      const userData = {
+        name: result.name,
+        accountNumber: result.accountNumber,
+        role: result.role,
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
+      setForm({ ...form, password: "" });
 
-        if (result.role === "admin") {
-          localStorage.setItem("isAdmin", "true");
-          setMessage("Admin login successful!");
-          setTimeout(() => navigate("/admin"), 1000);
-        } else {
-          localStorage.setItem("isAdmin", "false");
-          setMessage("Login successful!");
-          setTimeout(() => navigate("/home"), 1000);
-        }
+      if (result.role === "admin") {
+        localStorage.setItem("isAdmin", "true");
+        setMessage("Admin login successful!");
+
+        window.location.reload();
+
+        setTimeout(() => navigate("/admin"), 1000);
       } else {
-        setMessage(result.message || "Login failed");
+        localStorage.setItem("isAdmin", "false");
+        setMessage("Login successful!");
+
+        window.location.reload();
+
+        setTimeout(() => navigate("/home"), 1000);
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      setMessage("Network error: " + (error.message || error));
+    } else {
+      setMessage(result.message || "Login failed");
     }
-  };
+  } catch (error) {
+    console.error("Login error:", error);
+    
+    // Rate limiting and other errors
+    if (error.status === 429) {
+      setMessage(error.message || "Too many attempts, please try again later");
+    } else if (error.status === 401) {
+      setMessage("Invalid credentials");
+    } else if (error.message?.includes("Failed to fetch")) {
+      setMessage("Network error - cannot connect to server");
+    } else {
+      setMessage(error.message || "Login failed");
+    }
+  }
+};
+
+    
+
+  
 
   return (
     <div className="container mt-4">
@@ -82,6 +108,14 @@ export default function Login() {
           className={`alert ${
             message.includes("successful") ? "alert-success" : "alert-danger"
           }`}
+          style={{ 
+            backgroundColor: message.includes("successful") ? "#d4edda" : "#f8d7da",
+            color: message.includes("successful") ? "#155724" : "#721c24",
+            padding: "10px",
+            borderRadius: "5px",
+            marginBottom: "20px",
+            border: "1px solid #c3e6cb"
+          }}
         >
           {message}
         </div>
@@ -110,20 +144,34 @@ export default function Login() {
           />
         </div>
         
-        {/* Fixed Password Field using input-group */}
-        <div className="mb-3">
-          <div className="input-group">
-            <input 
-              type={showPassword ? "text" : "password"}
-              className="form-control"
-              name="password" 
-              placeholder="Password" 
-              value={form.password} 
-              onChange={handleChange}
-              required 
-            />
-           
-          </div>
+        <div className="mb-3 position-relative">
+          <input 
+            type={showPassword ? "text" : "password"}
+            className="form-control"
+            name="password" 
+            placeholder="Password" 
+            value={form.password} 
+            onChange={handleChange}
+            required 
+          />
+          <button
+            type="button"
+            className="btn btn-outline-secondary position-absolute"
+            style={{
+              right: "5px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              border: "none",
+              background: "transparent"
+            }}
+            onClick={togglePasswordVisibility}
+          >
+            {showPassword ? (
+              <i className="bi bi-eye-slash"></i> // Hide icon
+            ) : (
+              <i className="bi bi-eye"></i> // Show icon
+            )}
+          </button>
         </div>
         
         <button type="submit" className="btn btn-primary w-100" style={{ backgroundColor: "#d4af37", borderColor: "#d4af37" }}>

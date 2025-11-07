@@ -1,41 +1,41 @@
-This is our APDS7312 POE_2 backend
+This is our APDS7312 Final POE
 
 https://github.com/RubenJvR/APDS
 
 
 demo video:
-https://youtu.be/YbP2otdQNSQ
 
-To run the system use : npm run dev
+To run the system open the folder \APDS-main\BACKEND> and enter: npm run start 
+this will start the backend server
 
-Users can use pastman to test featuers
+open the folder \APDS-main\FRONTEND\frontend in a different terminal and enter: npm start
+this will launch the frontend. 
 
-Test Data
 
-{
-  "fullName": "Alice Wonder",
-  "idNumber": "123456789",
-  "accountNumber": "11111111",
-  "name": "alice",
-  "password": "Pass12345"
- }
 
 Features list:
--- Signup 
-        Used to sign up new users. 
-                post https://localhost:3000/user/signup
+
 -- Login
-        Used to log in existing
-                post https://localhost:3000/user/login
+        There is the login page where users can login as either an admin or user
+
+        admin credentials:
+        Username: admi
+        account number: 00111011101
+        password: Adminpass1
+
+        user credentials
+        Username: finUser
+        account number: 999999999
+        password: A12fe34dc56
+
 -- Transfer
-        used to transfer money
-                post https://localhost:3000/user/transfer
+        users can transfer funds by entering another user's account number and ammount 
+        of money on the transfer funds page. These transfers are pending, but can be approved by an admin.
 -- Add Funds
-        used to add funds
-                post https://localhost:3000/user//add-funds
+        users can also add funds on the Add Funds page
 
 All traffic is served over SSL
-
+And https connections are over both the front and backend
 The system uses Regex to process all user inputs
 There is password hashing and salting using bcrypt
 
