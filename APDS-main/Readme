@@ -7,6 +7,7 @@ Sonar Qube
 https://sonarcloud.io/summary/overall?id=RubenJvR_APDS&branch=main
 
 demo video:
+https://youtu.be/QuYmV2gTeYo
 
 To run the system open the folder \APDS-main\BACKEND> and enter: npm run start 
 this will start the backend server
