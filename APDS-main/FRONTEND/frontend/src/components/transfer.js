@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { transferFunds } from "../api";
+import { useState, useEffect } from "react";
+import { transferFunds, getTransfers } from "../api";
 
 export default function Transfer() {
   const [form, setForm] = useState({
@@ -8,13 +8,28 @@ export default function Transfer() {
   });
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingTransfers, setPendingTransfers] = useState([]);
+
+  // Fetch user's transfers
+  useEffect(() => {
+    fetchUserTransfers();
+  }, []);
+
+  const fetchUserTransfers = async () => {
+    try {
+      const transfers = await getTransfers();
+      const pending = transfers.filter(t => t.status === "pending");
+      setPendingTransfers(pending);
+    } catch (error) {
+      console.error("Error fetching transfers:", error);
+    }
+  };
 
   const handleChange = (e) => {
     setForm({
       ...form,
       [e.target.name]: e.target.value
     });
-    // Clear message when user starts typing
     if (message) setMessage("");
   };
 
@@ -22,7 +37,6 @@ export default function Transfer() {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage("");
-
 
     const accRegex = /^\d{8,12}$/;
     if(!accRegex.test(form.toAccountNumber)) {
@@ -39,21 +53,15 @@ export default function Transfer() {
     try {
       const result = await transferFunds(form.toAccountNumber, form.amount);
 
-      if (result.message == "Transfer successful") {
-        setMessage("Transfer successful");
+      if (result.message && result.message.includes("submitted")) {
+        setMessage("Transfer request submitted! Waiting for admin approval.");
         setForm({ toAccountNumber: "", amount: "" });
-      }
-      else if (result.message?.includes("Too many requests")) {
-        setMessage("Too many transfer attempts. Temporarily blocked (429)");
-      }
-      else if (result.message?.includes("invalid") || result.message?.includes("failed")) {
-        setMessage("Transfer blocked. Invalid or suspicious (401)");
-      }
-      else {
-        setMessage("Transfer failed");
+        fetchUserTransfers(); // Refresh the list
+      } else {
+        setMessage(result.message || "Transfer request failed");
       }
     } catch (error) {
-      setMessage("Network/CORS error: " + (error.message || error));
+      setMessage("Network error: " + (error.message || error));
     } finally {
       setIsSubmitting(false);
     }
@@ -66,15 +74,17 @@ export default function Transfer() {
       {message && (
         <div 
           className={`alert ${
-            message.includes("successful") ? "alert-success" : "alert-danger"
+            message.includes("submitted") || message.includes("successful") ? "alert-info" : "alert-danger"
           }`}
           style={{ 
-            backgroundColor: message.includes("successful") ? "#d4edda" : "#f8d7da",
-            color: message.includes("successful") ? "#155724" : "#721c24",
+            backgroundColor: message.includes("submitted") ? "#d1ecf1" : 
+                          message.includes("successful") ? "#d4edda" : "#f8d7da",
+            color: message.includes("submitted") ? "#0c5460" : 
+                  message.includes("successful") ? "#155724" : "#721c24",
             padding: "10px",
             borderRadius: "5px",
             marginBottom: "20px",
-            border: "1px solid #c3e6cb"
+            border: "1px solid #bee5eb"
           }}
         >
           {message}
@@ -114,9 +124,34 @@ export default function Transfer() {
           disabled={isSubmitting}
           style={{ backgroundColor: "#d4af37", borderColor: "#d4af37" }}
         >
-          {isSubmitting ? "Processing..." : "Transfer"}
+          {isSubmitting ? "Submitting..." : "Request Transfer"}
         </button>
       </form>
+
+      
+      {pendingTransfers.length > 0 && (
+        <div className="mt-5">
+          <h4 style={{ color: "#d4af37" }}>Pending Transfers</h4>
+          <div className="list-group">
+            {pendingTransfers.map(transfer => (
+              <div key={transfer._id} className="list-group-item">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong>To: {transfer.to}</strong>
+                    <br />
+                    Amount: ${transfer.amount}
+                    <br />
+                    <small className="text-muted">
+                      Requested: {new Date(transfer.date).toLocaleString()}
+                    </small>
+                  </div>
+                  <span className="badge bg-warning text-dark">Pending Approval</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

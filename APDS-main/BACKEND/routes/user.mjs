@@ -18,15 +18,23 @@ const router = express.Router();
 
 // Rate limits
 const limiter = rateLimit({
-    windowMs: 5 * 60 * 1000, 
-    max: 100,
-    message: 'Too many attempts, please try again later'
+  windowMs: 5 * 60 * 1000, 
+  max: 100,
+  handler: (req, res) => {
+    res.status(429).json({ 
+      message: 'Too many attempts, please try again later'
+    });
+  }
 });
 
 const limiterSignup = rateLimit({
-    windowMs: 15 * 60 * 1000, 
-    max: 10,
-    message: 'Too many sign up attempts, please try again later'
+  windowMs: 15 * 60 * 1000, 
+  max: 10,
+  handler: (req, res) => {
+    res.status(429).json({ 
+      message: 'Too many sign up attempts, please try again later'
+    });
+  }
 });
 
 var store = new ExpressBrute.MemoryStore();
@@ -188,7 +196,7 @@ router.post("/transfer", limiter, checkauth, async (req, res) => {
     const toAccountNumber = String(rawToAccountNumber || "").trim();
     const amount = parseFloat(rawAmount);
 
-    // Input validation - FIXED: Proper 0 amount check
+    // Input validation
     if (!toAccountNumber || rawAmount === undefined || rawAmount === null || amount <= 0 || isNaN(amount)) {
         pendingRequests.delete(requestKey);
         return res.status(400).json({ message: "Invalid transfer details. Amount must be a positive number." });
@@ -197,7 +205,6 @@ router.post("/transfer", limiter, checkauth, async (req, res) => {
     const amountRegex = /^\d+(\.\d{1,2})?$/;
     const toAccountNumberRegex = /^\d{8,12}$/;
 
-    // FIXED: Better amount validation
     if (!amountRegex.test(rawAmount.toString()) || amount <= 0) {
         pendingRequests.delete(requestKey);
         return res.status(400).json({ message: "Amount must be a positive number with up to 2 decimal places." });
@@ -208,21 +215,96 @@ router.post("/transfer", limiter, checkauth, async (req, res) => {
         return res.status(400).json({ message: "Recipient account number must be 8–12 digits." });
     }
 
-    // FIXED: Prevent transferring to self with proper error message
     if (fromAccountNumber === toAccountNumber) {
         pendingRequests.delete(requestKey);
         return res.status(400).json({ message: "Cannot transfer to your own account" });
+    }
+
+    try {
+        const transfers = db.collection("transfers");
+        
+        
+        const pendingTransfer = {
+            from: fromAccountNumber,
+            to: toAccountNumber,
+            amount: amount,
+            date: new Date(),
+            status: "pending", 
+            type: "transfer",
+            requestedBy: req.user.name,
+            requestedByAccount: fromAccountNumber
+        };
+        
+        const result = await transfers.insertOne(pendingTransfer);
+        
+        // Notify admins (you can implement real-time notifications here)
+        console.log(`Transfer pending approval: ${amount} from ${fromAccountNumber} to ${toAccountNumber}`);
+        
+        res.status(200).json({ 
+            message: "Transfer request submitted. Waiting for admin approval.",
+            transferId: result.insertedId,
+            status: "pending"
+        });
+
+    } catch (error) {
+        console.error("Transfer request error:", error);
+        if (!res.headersSent) {
+            res.status(500).json({ message: "Transfer request failed. Please try again." });
+        }
+    } finally {
+        pendingRequests.delete(requestKey);
+    }
+});
+
+router.get("/admin/pending-transfers", limiter, checkauth, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized - Admin access required" });
+    }
+
+    try {
+        const transfers = await db.collection("transfers")
+            .find({ status: "pending" })
+            .sort({ date: -1 })
+            .toArray();
+            
+        res.status(200).json({ transfers });
+    } catch (error) {
+        console.error("Error fetching pending transfers:", error);
+        res.status(500).json({ message: "Could not fetch pending transfers" });
+    }
+});
+
+router.post("/admin/approve-transfer", limiter, checkauth, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized - Admin access required" });
+    }
+
+    const { transferId } = req.body;
+    
+    if (!transferId) {
+        return res.status(400).json({ message: "Transfer ID is required" });
     }
 
     const session = db.client.startSession();
     
     try {
         await session.withTransaction(async () => {
-            const collection = db.collection("users");
+            const transfers = db.collection("transfers");
+            const users = db.collection("users");
             
+            // Get the pending transfer with lock
+            const transfer = await transfers.findOne(
+                { _id: new ObjectId(transferId), status: "pending" },
+                { session }
+            );
+            
+            if (!transfer) {
+                throw new Error("Transfer not found or already processed");
+            }
+
             // Get sender with lock
-            const sender = await collection.findOne(
-                { accountNumber: fromAccountNumber },
+            const sender = await users.findOne(
+                { accountNumber: transfer.from },
                 { session }
             );
             
@@ -231,8 +313,8 @@ router.post("/transfer", limiter, checkauth, async (req, res) => {
             }
 
             // Get receiver
-            const receiver = await collection.findOne(
-                { accountNumber: toAccountNumber },
+            const receiver = await users.findOne(
+                { accountNumber: transfer.to },
                 { session }
             );
             
@@ -240,58 +322,98 @@ router.post("/transfer", limiter, checkauth, async (req, res) => {
                 throw new Error("Recipient account not found");
             }
 
-            // Check balance - FIXED: Handle very small amounts
-            if ((sender.balance || 0) < amount) {
+            // Check balance
+            if ((sender.balance || 0) < transfer.amount) {
                 throw new Error("Insufficient funds");
             }
 
             // Update balances atomically
-            await collection.updateOne(
-                { accountNumber: fromAccountNumber },
-                { $inc: { balance: -amount } },
+            await users.updateOne(
+                { accountNumber: transfer.from },
+                { $inc: { balance: -transfer.amount } },
                 { session }
             );
             
-            await collection.updateOne(
-                { accountNumber: toAccountNumber },
-                { $inc: { balance: amount } },
+            await users.updateOne(
+                { accountNumber: transfer.to },
+                { $inc: { balance: transfer.amount } },
                 { session }
             );
 
-            // Log the transaction
-            const transfers = db.collection("transfers");
-            await transfers.insertOne({
-                from: fromAccountNumber,
-                to: toAccountNumber,
-                amount: amount,
-                date: new Date(),
-                type: "transfer"
-            }, { session });
+            // Update transfer status to approved
+            await transfers.updateOne(
+                { _id: new ObjectId(transferId) },
+                { 
+                    $set: { 
+                        status: "approved",
+                        approvedAt: new Date(),
+                        approvedBy: req.user.name
+                    } 
+                },
+                { session }
+            );
         });
 
-        // Success - send response ONCE
         res.status(200).json({ 
-            message: "Transfer successful",
-            amount: amount,
-            toAccount: toAccountNumber
+            message: "Transfer approved successfully"
         });
 
     } catch (error) {
-        console.error("Transfer error:", error);
+        console.error("Transfer approval error:", error);
         
         if (!res.headersSent) {
             if (error.message === "Insufficient funds") {
                 res.status(400).json({ message: "Insufficient funds" });
             } else if (error.message.includes("not found")) {
                 res.status(404).json({ message: error.message });
+            } else if (error.message.includes("already processed")) {
+                res.status(409).json({ message: error.message });
             } else {
-                res.status(500).json({ message: "Transfer failed. Please try again." });
+                res.status(500).json({ message: "Transfer approval failed" });
             }
         }
     } finally {
-        // Clean up
-        pendingRequests.delete(requestKey);
         await session.endSession();
+    }
+});
+
+router.post("/admin/reject-transfer", limiter, checkauth, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Unauthorized - Admin access required" });
+    }
+
+    const { transferId, reason } = req.body;
+    
+    if (!transferId) {
+        return res.status(400).json({ message: "Transfer ID is required" });
+    }
+
+    try {
+        const transfers = db.collection("transfers");
+        
+        const result = await transfers.updateOne(
+            { _id: new ObjectId(transferId), status: "pending" },
+            { 
+                $set: { 
+                    status: "rejected",
+                    rejectedAt: new Date(),
+                    rejectedBy: req.user.name,
+                    rejectionReason: reason || "No reason provided"
+                } 
+            }
+        );
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ message: "Transfer not found or already processed" });
+        }
+
+        res.status(200).json({ 
+            message: "Transfer rejected successfully"
+        });
+
+    } catch (error) {
+        console.error("Transfer rejection error:", error);
+        res.status(500).json({ message: "Transfer rejection failed" });
     }
 });
 
@@ -354,26 +476,26 @@ router.post("/add-funds", limiter, checkauth, async (req, res) => {
     }
 });
 
-router.get("/transfers", limiter, checkauth, async (req, res) => {
-  try {
-    const transfers = await db.collection("transfers")
-      .find({ 
-        $or: [
-          { from: req.user.accountNumber }, 
-          { to: req.user.accountNumber }
-        ] 
-      })
-      .sort({ date: -1 })
-      .limit(50) // Limit to prevent overload
-      .toArray();
-      
-    res.json(transfers);
-  } catch (error) {
-    console.error("Error fetching transfers:", error);
-    if (!res.headersSent) {
-      res.status(500).json({ message: "Could not fetch transfers" });
+router.get("/transfers", checkauth, async (req, res) => {
+    try {
+        const transfers = await db.collection("transfers")
+            .find({ 
+                $or: [
+                    { from: req.user.accountNumber }, 
+                    { to: req.user.accountNumber }
+                ] 
+            })
+            .sort({ date: -1 })
+            .limit(50)
+            .toArray();
+            
+        res.json(transfers);
+    } catch (error) {
+        console.error("Error fetching transfers:", error);
+        if (!res.headersSent) {
+            res.status(500).json({ message: "Could not fetch transfers" });
+        }
     }
-  }
 });
 
 router.get("/balance", limiter, checkauth, async (req, res) => {
