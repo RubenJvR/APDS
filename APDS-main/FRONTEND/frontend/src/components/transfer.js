@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { transferFunds, getTransfers } from "../api";
+import { transferFunds, getTransfers, getBalance } from "../api";
+
 
 export default function Transfer() {
   const [form, setForm] = useState({
@@ -34,38 +35,52 @@ export default function Transfer() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setMessage("");
+  e.preventDefault();
+  setIsSubmitting(true);
+  setMessage("");
 
-    const accRegex = /^\d{8,12}$/;
-    if(!accRegex.test(form.toAccountNumber)) {
-      setMessage("Invalid account number format");
+  const accRegex = /^\d{8,12}$/;
+  if(!accRegex.test(form.toAccountNumber)) {
+    setMessage("Invalid account number format");
+    setIsSubmitting(false);
+    return;
+  }
+  
+  if(!form.amount || Number(form.amount) <= 0) {
+    setMessage("Amount must be a positive number");
+    setIsSubmitting(false);
+    return;
+  }
+
+
+  try {
+ 
+    const balanceResponse = await getBalance();
+    const currentBalance = balanceResponse.balance || 0;
+    const transferAmount = Number(form.amount);
+    
+    if (transferAmount > currentBalance) {
+      setMessage(`Insufficient funds. Your balance is R${currentBalance.toFixed(2)}`);
       setIsSubmitting(false);
       return;
     }
-    if(!form.amount || Number(form.amount) <= 0) {
-      setMessage("Amount must be a positive number");
-      setIsSubmitting(false);
-      return;
-    }
+    
+    
+    const result = await transferFunds(form.toAccountNumber, form.amount);
 
-    try {
-      const result = await transferFunds(form.toAccountNumber, form.amount);
-
-      if (result.message && result.message.includes("submitted")) {
-        setMessage("Transfer request submitted! Waiting for admin approval.");
-        setForm({ toAccountNumber: "", amount: "" });
-        fetchUserTransfers(); // Refresh the list
-      } else {
-        setMessage(result.message || "Transfer request failed");
-      }
-    } catch (error) {
-      setMessage("Network error: " + (error.message || error));
-    } finally {
-      setIsSubmitting(false);
+    if (result.message && result.message.includes("submitted")) {
+      setMessage("Transfer request submitted! Waiting for admin approval.");
+      setForm({ toAccountNumber: "", amount: "" });
+      fetchUserTransfers(); 
+    } else {
+      setMessage(result.message || "Transfer request failed");
     }
-  };
+  } catch (error) {
+    setMessage("Network error: " + (error.message || error));
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="container mt-4">
