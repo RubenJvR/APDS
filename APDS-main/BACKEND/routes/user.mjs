@@ -320,25 +320,25 @@ router.post("/add-funds", limiter, checkauth, async (req, res) => {
 });
 
 router.get("/transfers", checkauth, async (req, res) => {
-    try {
-        const transfers = await db.collection("transfers")
-            .find({ 
-                $or: [
-                    { from: req.user.accountNumber }, 
-                    { to: req.user.accountNumber }
-                ] 
-            })
-            .sort({ date: -1 })
-            .limit(50)
-            .toArray();
-            
-        res.json(transfers);
-    } catch (error) {
-        console.error("Error fetching transfers:", error);
-        if (!res.headersSent) {
-            res.status(500).json({ message: "Could not fetch transfers" });
-        }
+  try {
+    const transfers = await db.collection("transfers")
+      .find({ 
+        $or: [
+          { from: req.user.accountNumber }, 
+          { to: req.user.accountNumber }
+        ]
+      })
+      .sort({ date: -1 })
+      .limit(50)
+      .toArray();
+      
+    res.json(transfers);
+  } catch (error) {
+    console.error("Error fetching transfers:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Could not fetch transfers" });
     }
+  }
 });
 
 router.get("/balance", limiter, checkauth, async (req, res) => {
@@ -356,16 +356,20 @@ router.get("/balance", limiter, checkauth, async (req, res) => {
         $or: [
           { from: req.user.accountNumber },
           { to: req.user.accountNumber }
-        ]
+        ],
+        status: { $ne: "rejected" } 
       })
       .toArray();
 
     let totalSent = 0;
     let totalReceived = 0;
 
-    transfers.forEach(t => {
-      if (t.from === req.user.accountNumber) totalSent += t.amount;
-      if (t.to === req.user.accountNumber) totalReceived += t.amount;
+     transfers.forEach(t => {
+      
+      if (!t.status || t.status === "approved" || t.status === "completed") {
+        if (t.from === req.user.accountNumber) totalSent += t.amount;
+        if (t.to === req.user.accountNumber) totalReceived += t.amount;
+      }
     });
 
     res.json({

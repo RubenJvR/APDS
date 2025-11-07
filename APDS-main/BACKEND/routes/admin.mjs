@@ -299,8 +299,7 @@ router.get("/pending-transfers", checkauth, async (req, res) => {
     try {
         const transfers = db.collection("transfers");
         
-        // Get all transfers and filter for pending ones
-        // If no 'status' field exists, we'll treat all as completed
+       
         const allTransfers = await transfers
             .find({ status: "pending" }) // Only get pending transfers
             .sort({ date: -1 })
