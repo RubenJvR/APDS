@@ -167,6 +167,11 @@ const Admin = () => {
         }
     };
 
+    // Format amount as Rands
+    const formatAmount = (amount) => {
+        return `R ${Number(amount || 0).toFixed(2)}`;
+    };
+
     return (
         <div className="container" ref={formRef}>
             <h1 className="text-center mb-4" style={{ color: "#d4af37" }}>Admin Dashboard</h1>
@@ -257,6 +262,19 @@ const Admin = () => {
                         />
                     </div>
 
+                    <div className="form-group">
+                        <label>Initial Balance (Rands):</label>
+                        <input
+                            type="number"
+                            name="initialBalance"
+                            value={newUser.initialBalance}
+                            onChange={handleInputChange}
+                            className="form-control"
+                            min="0"
+                            step="0.01"
+                        />
+                    </div>
+
                     <button 
                         type="submit" 
                         className="primary-btn" 
@@ -290,7 +308,7 @@ const Admin = () => {
                                     <td>{user.fullName}</td>
                                     <td>{user.name}</td>
                                     <td>{user.accountNumber}</td>
-                                    <td className="amount">${Number(user.balance || 0).toFixed(2)}</td>
+                                    <td className="amount">{formatAmount(user.balance)}</td>
                                     <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}</td>
                                 </tr>
                             ))}
@@ -329,6 +347,11 @@ const Admin = () => {
                     border-width: 2px;
                 }
                 
+                .amount {
+                    font-weight: bold;
+                    color: #2e8b57;
+                }
+                
                 @keyframes slideIn {
                     from {
                         transform: translateY(-10px);
@@ -347,5 +370,5 @@ const Admin = () => {
         </div>
     );
 };
-
+  
 export default Admin;
