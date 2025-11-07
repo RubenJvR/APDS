@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://localhost:3000';
+const API_BASE_URL = 'http://localhost:3001'; // Use HTTP port for development
 
 // Simple fetch wrapper
 async function fetchAPI(endpoint, options = {}) {
@@ -20,25 +20,30 @@ async function fetchAPI(endpoint, options = {}) {
   try {
     const response = await fetch(url, config);
     
+    // Check if response is JSON first
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}`);
+    }
+    
+    const data = await response.json();
+    
     if (!response.ok) {
-      // For rate limiting - capture the 429 status properly
-      const errorData = await response.json().catch(() => ({
-        message: `HTTP error! status: ${response.status}`
-      }));
-      const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      const error = new Error(data.message || `HTTP error! status: ${response.status}`);
       error.status = response.status;
-      error.response = errorData;
+      error.response = data;
       throw error;
     }
     
-    return await response.json();
+    return data;
   } catch (error) {
     console.error('API call failed:', error);
     throw error;
   }
 }
 
-// Corrected login function - using /user/login endpoint
+// CORRECTED API FUNCTIONS - Use the right endpoints
 export const login = async (credentials) => {
   return fetchAPI('/user/login', {
     method: 'POST',
@@ -46,7 +51,6 @@ export const login = async (credentials) => {
   });
 };
 
-// Your other functions remain the same
 export async function signup(userData) {
   return fetchAPI('/user/signup', {
     method: 'POST',
@@ -62,53 +66,41 @@ export async function getTransfers() {
   return fetchAPI('/user/transfers');
 }
 
+// FIXED: Use correct endpoint
 export const transferFunds = async (toAccountNumber, amount) => {
-  const response = await fetch("/api/transfer", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ toAccountNumber, amount }),
-    credentials: "include",
+  return fetchAPI('/user/transfer', {
+    method: 'POST',
+    body: {
+      toAccountNumber,
+      amount: parseFloat(amount)
+    }
   });
-  return await response.json();
-};
-
-export const getPendingTransfers = async () => {
-  const response = await fetch("/api/admin/pending-transfers", {
-    credentials: "include",
-  });
-  return await response.json();
-};
-
-export const approveTransfer = async (transferId) => {
-  const response = await fetch("/api/admin/approve-transfer", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ transferId }),
-    credentials: "include",
-  });
-  return await response.json();
-};
-
-export const rejectTransfer = async (transferId, reason) => {
-  const response = await fetch("/api/admin/reject-transfer", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ transferId, reason }),
-    credentials: "include",
-  });
-  return await response.json();
 };
 
 export async function addFunds(amount) {
   return fetchAPI('/user/add-funds', {
     method: 'POST',
     body: { amount: parseFloat(amount) }
+  });
+}
+
+// Admin functions
+export async function getPendingTransfers() {
+  return fetchAPI('/admin/pending-transfers'); 
+}
+
+// FIXED: Correct admin endpoints
+export async function approveTransfer(transferId) {
+  return fetchAPI('/admin/approve-transfer', {
+    method: 'POST',
+    body: { transferId }
+  });
+}
+
+export async function rejectTransfer(transferId, reason) {
+  return fetchAPI('/admin/reject-transfer', {
+    method: 'POST',
+    body: { transferId, reason }
   });
 }
 
@@ -144,5 +136,8 @@ export default {
   getTransfers,
   transferFunds,
   addFunds,
-  checkAuth
+  checkAuth,
+  getPendingTransfers,
+  approveTransfer,
+  rejectTransfer
 };
