@@ -1,5 +1,6 @@
+//login.js
 import React, {useState} from "react";
-import { apiPost } from "../api";
+
 import { login } from "../api";
 import { useNavigate } from "react-router-dom";
 
@@ -25,66 +26,72 @@ export default function Login() {
   e.preventDefault();
   setMessage("Logging in...");
 
-  // --- Input validation ---
+  // Input validation with specific error messages
   const nameRegex = /^\w{3,15}$/;
   const accRegex = /^\d{8,12}$/;
   const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
   if (!nameRegex.test(form.name)) {
-    setMessage("Invalid username format");
+    setMessage("Username must be 3-15 characters (letters, numbers, underscores only)");
     return;
   }
   if (!accRegex.test(form.accountNumber)) {
-    setMessage("Invalid account number format");
+    setMessage("Account number must be 8-12 digits only");
     return;
   }
   if (!passRegex.test(form.password)) {
     setMessage(
-      "Password must be at least 8 characters long and include uppercase, lowercase letters, and a number"
+      "Password must be: 8+ characters, include uppercase, lowercase, and a number"
     );
     return;
   }
 
-  // --- Attempt login ---
+  // Attempt login
   try {
     const result = await login(form);
     console.log("Login result:", result);
 
     if (result.message === "Login successful") {
-      // Save user info
+      // Success handling
       const userData = {
         name: result.name,
         accountNumber: result.accountNumber,
         role: result.role,
       };
       localStorage.setItem("user", JSON.stringify(userData));
-
-      // Clear password field
       setForm({ ...form, password: "" });
 
-      // Admin vs regular user
       if (result.role === "admin") {
         localStorage.setItem("isAdmin", "true");
         setMessage("Admin login successful!");
+
+        window.location.reload();
+
         setTimeout(() => navigate("/admin"), 1000);
       } else {
         localStorage.setItem("isAdmin", "false");
         setMessage("Login successful!");
+
+        window.location.reload();
+
         setTimeout(() => navigate("/home"), 1000);
       }
-    } else if (result.message?.includes("Too many requests")) {
-      setMessage("Too many attempts — rate limit triggered (429)");
-    } else if (
-      result.message?.includes("invalid") ||
-      result.message?.includes("failed")
-    ) {
-      setMessage("Authentication failed (401) / suspicious session blocked");
     } else {
       setMessage(result.message || "Login failed");
     }
   } catch (error) {
     console.error("Login error:", error);
-    setMessage("Network/CORS error: " + (error.message || error));
+    
+    // Rate limiting and other errors
+    if (error.status === 429) {
+      setMessage(error.message || "Too many attempts, please try again later");
+    } else if (error.status === 401) {
+      setMessage("Invalid credentials");
+    } else if (error.message?.includes("Failed to fetch")) {
+      setMessage("Network error - cannot connect to server");
+    } else {
+      setMessage(error.message || "Login failed");
+    }
   }
 };
 

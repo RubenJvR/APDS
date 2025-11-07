@@ -1,4 +1,5 @@
-const API_BASE_URL = 'https://localhost:3002';
+//index.js
+const API_BASE_URL = 'https://localhost:3001';
 
 // Request tracking to prevent duplicates
 const pendingRequests = new Map();
@@ -7,7 +8,7 @@ function getRequestKey(endpoint, body) {
   return `${endpoint}-${JSON.stringify(body)}`;
 }
 
-// Enhanced fetch wrapper - FIXED error handling
+// Enhanced fetch wrapper
 async function fetchAPI(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   const requestKey = getRequestKey(endpoint, options.body);
@@ -45,11 +46,11 @@ async function fetchAPI(endpoint, options = {}) {
       throw new Error(data.message || `Request failed with status ${response.status}`);
     }
     
-    console.log(`✅ API Success: ${url}`, data);
+    console.log(`API Success: ${url}`, data);
     return data;
     
   } catch (error) {
-    console.error(`❌ API Error: ${url}`, error.message);
+    console.error(` API Error: ${url}`, error.message);
     
     
     throw error;
